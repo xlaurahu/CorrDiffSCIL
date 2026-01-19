@@ -1,0 +1,14 @@
+import os 
+import requests 
+
+os.environ['NGC_API_KEY'] = 'YOUR API KEY'
+print(as.environ.get('NGC_API_KEY')) 
+
+# make sure that your key is properly connected
+
+url = "https://api.ngc.nvidia.com/v2/users/me"
+headers = {'Authorization': f'Bearer {os.environ.get("NGC_API_KEY")}'}
+
+r = requests.get(url, headers=headers)
+print(f"Status: {r.status_code}")
+# 200 means that the key is valid 
