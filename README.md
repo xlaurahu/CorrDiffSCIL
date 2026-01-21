@@ -26,21 +26,21 @@ To ensure that data loads safely
 
 ## Launching the NIM
 
-In order to lauch the NIM, a personal API Key is required for the login process. To obtain the API key, register an account with NVIDIA [HERE](https://build.nvidia.com/settings/api-keys)
+To gain access to the CorrDiff model, we need to use the NIM(NVIDIA Inference Microservice). To launch the NIM, a personal API Key is required for the login process. To obtain the API key, register an account with NVIDIA [HERE](https://build.nvidia.com/settings/api-keys). It is recommended that you paste your key somewhere you have easy access to. 
 
 Note that your key value starts with *nvapi-* and ends with *vEg*. Your key is only valid for one year. If you ever lose your key, you should delete the old one and generate a new API Key. 
 
 >[!CAUTION]
 >Your personal key should be kept private at all times.
 
-To properly launch the NIM on your NVIDIA pod, download and edit the corrdiff-nim-deployment.yaml file to your username and change value to your personal key.
+To properly launch the NIM on your NVIDIA pod, download and edit the corrdiff-nim-deployment.yaml file to your username and change the value to your personal API key.
 
 ```
 name: NGC_API_KEY
   value: "YOUR API KEY"
 ```
 
-To create the deployment, run the following in your laptop terminal:
+To create the deployment, run the following in your terminal:
 
 `kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n sdsu-shen-climate-lab`
 
