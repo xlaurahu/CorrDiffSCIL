@@ -55,9 +55,9 @@ Once the status shows running:
 
 ## Run CorrDiff NIM
 
-To make predictions using CorrDiff NIM, a sample script to generate predictions for _Hurricane Helene(9/26/24 - 9/27/24)_ can be found in `CorrDiffHurrHeleVis.ipynb`. The script includes API key validation and NIM health check; it is a prerequisite to ensure that the status of both checkpoints is good before running inferences. The runtime for your inference depends on your sample size and step size. It is recommended for users to limit the inference runtime by adjusting the timeout limit. 
+To make predictions using CorrDiff NIM, a sample script to generate predictions for _Hurricane Helene(9/26/24 - 9/27/24)_ can be found in `CorrDiffHurrHeleVis.ipynb`. The script includes API key validation and NIM health check; it is a prerequisite to ensure that the status of both checkpoints is good before running inferences. The runtime for your inference depends on your sample size and step size. Users are recommended to limit the inference runtime by adjusting the timeout. 
 
-Note that CorrDiff NIM only generates raw tensor outputs; post-processing of the metadata should be handled by users. The script utilizes channel-specific ensemble mean and other post-processing strategies that are suitable for hurricane tracking. For more information about the CorrDiff model, please visit the CorrDiff model card [HERE](https://build.nvidia.com/nvidia/corrdiff/modelcard). 
+Note that CorrDiff NIM only generates raw tensor outputs; users should handle post-processing of the metadata. The script utilizes channel-specific ensemble mean and other post-processing strategies that are suitable for hurricane tracking. For more information about the CorrDiff model, please visit the CorrDiff model card [HERE](https://build.nvidia.com/nvidia/corrdiff/modelcard). 
 
 The animated prediction visualization for Hurricane Helene:
 ![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/combined.gif)
