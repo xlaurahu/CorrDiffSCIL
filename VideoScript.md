@@ -26,11 +26,11 @@ command `pip install earth2studio`. As a standard practice, you should register 
 ## Launching CorrDiff NIM
 Our next step is to launch the CorrDiff NIM. NIM stands for NVIDIA Inference Microservice, which is a containerized service 
 that deploys NVIDIA AI models as production-ready inference endpoints. To access the NIM, you first need to register 
-for a personal NVIDIA API Key [HERE](https://build.nvidia.com/settings/api-keys). Your key should start with `nvapi-` and it 
+for a personal NVIDIA API Key [API link](https://build.nvidia.com/settings/api-keys). Your key should start with `nvapi-` and it 
 is only valid for one year. You must keep your API key private at all times. 
 
-Once you have obtained your API Key, download the file named `corrdiff-nim-deployment.yaml`. Inside the file, locate 
-the session:
+Once you have obtained your API Key, download the [YAML file](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/corrdiff-nim-deployment.yaml). Inside the file, locate 
+line 37 - 38:
 ```
 name: NGC_API_KEY
   value: "YOUR API KEY"
@@ -48,6 +48,10 @@ kubectl get pods -n <Lab Namespace> -w | grep corrdiff
 Make sure the status of your pod shows _RUNNING_.
 
 ## Running CorrDiff for Hurricane Helene 
+
+In this [ipynb file](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/CorrDiffHurrHeleVis.ipynb), we have a sample script that deploys the CorrDiff NIM to generate predictions for Hurricane Helene from 9/26/2024 15:00 to 9/27/2024 6:00. I will go through all the code chunks and the purpose for them. 
+
+
 
 
 
