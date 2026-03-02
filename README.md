@@ -82,12 +82,18 @@ kubectl delete deployment corrdiff-nim-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 ```
 
+
 ## References
 
 * [NVIDIA NIM](https://docs.nvidia.com/nim/earth-2/corrdiff/latest/overview.html)
 * [Model Card](https://build.nvidia.com/nvidia/corrdiff/modelcard)
 * [Earth2Studio](https://github.com/NVIDIA/earth2studio)
 
+
+
+
+### Bonus .zshrc shortcuts
+Mac users can download the .zshrc shortcut from `MacOSshorcut.sh`
 
 
 
