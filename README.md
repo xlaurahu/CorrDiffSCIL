@@ -42,10 +42,10 @@ name: NGC_API_KEY
 
 To create the deployment, run the following in your terminal:
 
-`kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n sdsu-shen-climate-lab`
+`kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n <Lab Namespace>`
 
 Then run:
-`kubectl get pods -n sdsu-shen-climate-lab | grep corrdiff`
+`kubectl get pods -n <Lab Namespace> | grep corrdiff`
 
 >[!TIP]
 >It takes about 5-10 mins for Kubernetes cluster to download the images(~26GB), keep checking the real-time status of the container in watch mode by running `kubectl get pods -n sdsu-shen-climate-lab -w | grep corrdiff`.
