@@ -35,21 +35,21 @@ spec:
           name: http
         env:
         - name: NGC_API_KEY
-          value: "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"
+          value: "<YOUR API KEY>"
         resources:
           requests:
-            memory: "32Gi"
-            cpu: "8"
+            memory: "32Gi" #adjust based on availability and usage 
+            cpu: "8" #adjust based on availability and usage 
             nvidia.com/gpu: "1"
           limits:
-            memory: "64Gi"
-            cpu: "16"
+            memory: "64Gi" #adjust based on availability and usage 
+            cpu: "16" #adjust based on availability and usage 
             nvidia.com/gpu: "1"
         volumeMounts:
         - name: dshm
           mountPath: /dev/shm
       volumes:
-      - name: dshm
+      - name: dshm 
         emptyDir:
           medium: Memory
           sizeLimit: 16Gi
