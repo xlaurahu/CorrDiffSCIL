@@ -70,7 +70,7 @@ The predicted windspeed, temperature, and vorticity for Hurricane Helene:
 
 ![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
 
-The predicted hurricane track against the ground truth:
+The predicted hurricane track against HRRR_FX predictions and ground truth:
 
 ![Predicted track](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurrHele_Prediction_track.png)
 
