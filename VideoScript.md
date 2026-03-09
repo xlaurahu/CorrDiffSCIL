@@ -24,30 +24,27 @@ First, we want to set up our environment.
 
 In your kernel, make sure you have `conda` installed and Python version greater than 3.10. You can verify your
 Python version with the command in your ipynb `print(python3--version)`. Next, we want to install Earth2Studio using the 
-command in your kernel
+command in your Earth2Studio kernel terminal. 
 
 ```bash
 pip install earth2studio
 ```
 
-```python
-!pip install earth2studio
-```
-
-
 ## Launching CorrDiff NIM
-Our next step is to launch the CorrDiff NIM. NIM stands for NVIDIA Inference Microservice, which is a containerized service 
-that deploys NVIDIA AI models as production-ready inference endpoints. To access the NIM, you first need to register 
-for a personal NVIDIA API Key [API link](https://build.nvidia.com/settings/api-keys). Your key should start with `nvapi-` and it 
+
+Our next step is to launch the NVIDIA NIM for CorrDiff. NIM stands for NVIDIA Inference Microservice, which is a containerized service 
+that deploys NVIDIA AI models as production-ready inference endpoints. To access the NIM, you first need to register an account with NVIDIA
+and obtain a personal API Key [API link](https://build.nvidia.com/settings/api-keys). Your key should start with `nvapi-` and it 
 is only valid for one year. You must keep your API key private at all times. 
 
 Once you have obtained your API Key, download the [YAML file](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/corrdiff-nim-deployment.yaml). Inside the file, locate 
 line 37 - 38:
+
 ```
 name: NGC_API_KEY
-  value: "YOUR API KEY"
+  value: "<YOUR API KEY>"
 ```
-Replace "YOUR API KEY" with your actual key value and save the file using your username. 
+Replace "<YOUR API KEY>" with your actual key value and save the file using your username. 
 
 Now you can deploy the NIM through Kubernetes in your terminal by running 
 ```
@@ -58,6 +55,7 @@ The container takes a couple of minutes to initialize. You can check the live st
 kubectl get pods -n <Lab Namespace> -w | grep corrdiff
 ```
 Make sure the status of your pod shows _RUNNING_.
+
 
 ## Running CorrDiff for Hurricane Helene 
 
