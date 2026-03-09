@@ -64,9 +64,9 @@ To make predictions using CorrDiff NIM, a sample script that generates predictio
 
 The script includes API key validation and NIM health check; it is a prerequisite to ensure that the status of both checkpoints is good before running inferences. The runtime for your inference depends on your sample size and step size. Users are recommended to limit the inference runtime by adjusting the timeout. 
 
-Note that CorrDiff NIM only generates raw tensor outputs; users should handle post-processing of the metadata. The sample script includes channel-specific ensemble mean and other post-processing strategies, which are suitable for hurricane tracking. Visit the CorrDiff model card for more information on inputs and outputs. 
+Note that CorrDiff NIM only generates raw tensor outputs; users should handle metadata post-processing. The sample script includes channel-specific ensemble mean and other post-processing strategies, which are suitable for hurricane tracking. Visit the CorrDiff model card for more information on inputs and outputs. 
 
-The predicted windspeed, temperature, and vorticity for Hurricane Helene:
+The predicted **windspeed(m/s)**, **precipitation(mm)**, and **vorticity(/s)** for Hurricane Helene:
 
 ![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
 
