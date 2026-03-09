@@ -68,7 +68,7 @@ Note that CorrDiff NIM only generates raw tensor outputs; users should handle po
 
 The predicted windspeed, temperature, and vorticity for Hurricane Helene:
 
-![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/combined.gif)
+![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
 
 The predicted hurricane track against the ground truth:
 
