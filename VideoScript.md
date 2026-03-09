@@ -11,6 +11,10 @@ In this video, we will cover:
 * Launching CorrDiff using NVIDIA CorrDiff NIM v1.0.0
 * Running Hurricane predictions and output visualizations
 
+By the end of this video, you should be able to produce high-resolution weather predictions like below:
+
+![Windspeed](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurrHele_CONUS_Windspeed_9_26_15.png)
+
 Before proceeding, make sure you have an active connection to the Tide Nautulius pod before
 running any `kubectl` commands. If you are not connected, establish your Nautulius session first.
 
