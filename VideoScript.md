@@ -8,23 +8,31 @@ Earth-2 Corrective-Diffusion model, known as CorrDiff US.
 In this video, we will cover:
 
 * Required installations
-* Launching CorrDiff using NVIDIA CorrDiff NIM v1.0.0
+* Launching CorrDiff using NVIDIA CorrDiff NIM v1.1.0
 * Running Hurricane predictions and output visualizations
 
-By the end of this video, you should be able to produce high-resolution weather predictions like below:
+By the end of this video, you should be able to produce high-resolution weather predictions like the figure below:
 
 ![Windspeed](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurrHele_CONUS_Windspeed_9_26_15.png)
 
 Before proceeding, make sure you have an active connection to the Tide Nautulius pod before
-running any `kubectl` commands. If you are not connected, establish your Nautulius session first.
+running any `kubectl` commands. If you are not connected, establish your Nautulius session.
 
 ## Required Installation 
 
 First, we want to set up our environment.
 
 In your kernel, make sure you have `conda` installed and Python version greater than 3.10. You can verify your
-Python version with the command `python3--version`. Next, we want to install Earth2Studio using the 
-command `pip install earth2studio`. As a standard practice, you should register a separate kernel for Earth2Studio.
+Python version with the command in your ipynb `print(python3--version)`. Next, we want to install Earth2Studio using the 
+command in your kernel
+
+```bash
+pip install earth2studio
+```
+
+```python
+!pip install earth2studio
+```
 
 
 ## Launching CorrDiff NIM
