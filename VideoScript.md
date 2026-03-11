@@ -18,24 +18,52 @@ By the end of this video, you should be able to produce high-resolution weather 
 Before proceeding, make sure you have an active connection to the Tide Nautulius pod before
 running any `kubectl` commands. If you are not connected, establish your Nautulius session.
 
-## Required Installation 
+## Initial Setup
 
 First, we want to set up our environment.
 
-In your kernel, make sure you have `conda` installed and Python version greater than 3.10. You can verify your
-Python version with the command in your ipynb `print(python3--version)`. Next, we want to install Earth2Studio using the 
-command in your Earth2Studio kernel terminal. 
+It is recommended that you make an isolated environment for this project using conda. An Isolated environment has its own Python version, packages, and settings. JupyterHub should already have 
+conda installed. Check its existence by typing `conda --version` in your JupyterHub terminal. You should see something like `conda 25.11.1` in return. If conda is not installed, run the following lines 
+in your terminal 
 
 ```bash
+# 1. Create the environment
+conda create --name earth2studio python=3.11
+
+# 2. Activate the environment
+conda activate earth2studio
+
+# 3. Install ipykernel (needed to register with Jupyter)
+pip install ipykernel
+
+# 4. Install earth2studio
 pip install earth2studio
+
+# 5. Register the environment as a Jupyter kernel
+python -m ipykernel install --user --name earth2studio --display-name "Python (earth2studio)"
+
+# 6. Return to base
+conda deactivate
 ```
+
+Now you have returned to your base, type `find ~ -name "earth2studio" -type d 2>/dev/null` to check where you have earth2studio. You should see something like this 
+
+```bash
+/.local/share/jupyter/kernels/earth2studio
+/miniconda3/envs/earth2studio
+/miniconda3/envs/earth2studio/lib/python3.11/site-packages/earth2studio
+```
+
+Now you can open an .ipynb file with your new Python3.11(earth2studio) kernel. 
+
+
 
 ## Launching CorrDiff NIM
 
 Our next step is to launch the NVIDIA NIM for CorrDiff. NIM stands for NVIDIA Inference Microservice, which is a containerized service 
 that deploys NVIDIA AI models as production-ready inference endpoints. To access the NIM, you first need to register an account with NVIDIA
-and obtain a personal API Key [API link](https://build.nvidia.com/settings/api-keys). Your key should start with `nvapi-` and it 
-is only valid for one year. You must keep your API key private at all times. 
+and obtain a personal API Key [Here](https://build.nvidia.com/settings/api-keys). Your key should start with `nvapi-` and it 
+is only valid for one year. You'll need to keep your API key private at all times. 
 
 Once you have obtained your API Key, download the [YAML file](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/corrdiff-nim-deployment.yaml). Inside the file, locate 
 line 37 - 38:
