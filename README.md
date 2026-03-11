@@ -3,7 +3,8 @@ A guide for generating AI weather forecast using NVIDIA Earth2Studio CorrDiff Mo
 
 ## Required Installations 
 
-Install `conda` in your terminal and make sure `python3 --version` > 3.10 
+You should have `conda` in your Jupyter terminal and make sure `python3 --version` > 3.10 
+
 
 ```
 pip install earth2studio
