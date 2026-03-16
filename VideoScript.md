@@ -23,8 +23,9 @@ running any `kubectl` commands. If you are not connected, establish your Nautuli
 First, we want to set up our environment.
 
 It is recommended that you make an isolated environment for this project using conda. An Isolated environment has its own Python version, packages, and settings. JupyterHub should already have 
-conda installed. Check its existence by typing `conda --version` in your JupyterHub terminal. You should see something like `conda 25.11.1` in return. If conda is not installed, run the following lines 
-in your terminal 
+conda installed. Check its existence by typing `conda --version` in your JupyterHub terminal. You should see something like `conda 25.11.1` in return. 
+
+If conda is not installed, run the following lines in your terminal: 
 
 ```bash
 # 1. Create the environment
@@ -53,12 +54,14 @@ Now you have returned to your base, type `find ~ -name "earth2studio" -type d 2>
 /miniconda3/envs/earth2studio
 /miniconda3/envs/earth2studio/lib/python3.11/site-packages/earth2studio
 ```
+These lines tell you where you have `earth2studio` installed in your JupyterHub and its paths. 
 
 Now you can open an .ipynb file with your new Python3.11(earth2studio) kernel. 
 
 
-
 ## Launching CorrDiff NIM
+
+### 1. Register API Keys
 
 Our next step is to launch the NVIDIA NIM for CorrDiff. NIM stands for NVIDIA Inference Microservice, which is a containerized service 
 that deploys NVIDIA AI models as production-ready inference endpoints. To access the NIM, you first need to register an account with NVIDIA
@@ -72,13 +75,18 @@ line 37 - 38:
 name: NGC_API_KEY
   value: "<YOUR API KEY>"
 ```
-Replace "<YOUR API KEY>" with your actual key value and save the file using your username. 
+Replace "<YOUR API KEY>" with your actual key value and save the file using your username. Save the file on your computer locally. 
 
-Now you can deploy the NIM through Kubernetes in your terminal by running 
+### 2. Software support
+
+NVIDIA NIM requires specific GPU hardware and memory configuration to run AI models efficiently. In this tutorial, we are using NVIDIA L40 GPUs deployed through Kubernetes, as requested in the YAML file. 
+
+
+Your next step is to deploy the NIM through Kubernetes in your terminal by running 
 ```
 kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n <Lab Namespace>
 ```
-The container takes a couple of minutes to initialize. You can check the live status of your pod by running 
+The container takes a couple of minutes to initialize. You can check the live status of your pod by running the line below in your terminal. 
 ```
 kubectl get pods -n <Lab Namespace> -w | grep corrdiff
 ```
