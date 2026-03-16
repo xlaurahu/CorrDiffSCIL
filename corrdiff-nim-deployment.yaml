@@ -38,12 +38,12 @@ spec:
           value: "<YOUR API KEY>"
         resources:
           requests:
-            memory: "32Gi" #adjust based on availability and usage 
-            cpu: "8" #adjust based on availability and usage 
+            memory: "16Gi" #adjust based on availability and usage 
+            cpu: "2" #adjust based on availability and usage 
             nvidia.com/gpu: "1"
           limits:
-            memory: "64Gi" #adjust based on availability and usage 
-            cpu: "16" #adjust based on availability and usage 
+            memory: "16Gi" #adjust based on availability and usage 
+            cpu: "2" #adjust based on availability and usage 
             nvidia.com/gpu: "1"
         volumeMounts:
         - name: dshm
