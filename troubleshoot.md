@@ -5,12 +5,12 @@
 
 ### NIM Authentication
 
-If the status of your NIM alternates between `ImagePullOff`  and `ErrImagePull` with your NIM connection shows a 402 error on your JupyterHub, that means you encountered an authentication error. 
-You typically encounter this when you try to deploy the NIM from a different device(found out the hard way ...). 
+If the status of your NIM alternates between `ImagePullOff`  and `ErrImagePull`, and your NIM connection returns a 402 error in JupyterHub, that indicates you encountered an authentication error. 
+You typically encounter this when you try to deploy the NIM from a device other than the one you registered. 
 
 To troubleshoot, first delete your deployment, then delete your old API Key and generate a new one [HERE](https://build.nvidia.com/explore/discover). 
 
-In your terminal, paste the following code, change <NAMESPACE> into your namespace, and replace <YOUR API KEY> with your new key:
+In your terminal, paste the following code. Remember to change <NAMESPACE> into your namespace, and replace <YOUR API KEY> with your new key:
 
 ```bash
 #delete your previous secret 
@@ -25,7 +25,7 @@ kubectl create secret docker-registry ngc-secret \
   -n <NAMESPACE> 
 ```
 
-Now, change the api key value in your YAML file and try deploying the NIM in your terminal again. 
+Now, replace the api key value in your YAML file, and try deploying the NIM in your terminal again. 
 
 
 
