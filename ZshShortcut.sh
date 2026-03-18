@@ -4,13 +4,19 @@ k8s_connect_prompt() {
     read -r response
     
     if [[ "$response" =~ ^[Yy]$ ]]; then
-        echo "Creating deployment..."
-        kubectl create -f jupyter-deployment-laurahu.yaml -n sdsu-shen-climate-lab
+	
+		echo "Enter your deployment name: "
+		read -r deployment_name
+		echo "Enter your lab name space: "
+		read -r lab_namespace
+		
+		echo "Creating deployment..."
+        kubectl create -f "${deployment_name}.yaml" -n "$lab_namespace"
 	
 	sleep 5
         
         echo "\nCurrent pods:"
-	kubectl get pods -n sdsu-shen-climate-lab | grep jupyter-deployment-laurahu
+		kubectl get pods -n "$lab_namespace" | grep "$deployment_name"
 
         
         echo "\nEnter pod name: "
@@ -20,11 +26,11 @@ k8s_connect_prompt() {
         
         if [[ -n "$pod_name" ]]; then
             echo "\nFetching logs for $pod_name..."
-            kubectl logs "$pod_name" -n sdsu-shen-climate-lab
+            kubectl logs "$pod_name" -n "$lab_namespace"
             echo "\nSuccessfully retrieved logs!"
 
-	    osascript -e "tell application \"Terminal\" to do script \"kubectl port-forward $pod_name -n sdsu-shen-climate-lab 8888:8888\""
-	    echo "Port forwarding in another window."
+	    	osascript -e "tell application \"Terminal\" to do script \"kubectl port-forward $pod_name -n "$lab_namespace" 8888:8888\""
+	    	echo "Port forwarding in another window."
 	fi
     fi
 }
@@ -36,25 +42,21 @@ nim_connect_prompt(){
     read -r response 
     
     if [[ "$response" =~ ^[Yy]$ ]]; then 
+
+		echo "Enter your deployment name: "
+		read -r nim_name
+		echo "Enter your lab namespace: "
+		read -r lab_name
         echo "Creating NIM deployment..."
-        kubectl create -f corrdiff-nim-deployment-laurahu.yaml -n sdsu-shen-climate-lab
+		
+        kubectl create -f "${nim_name}.yaml" -n "$lab_name"
+
+		echo "Waiting for pods to start..."
+		sleep 20 
         
         echo "Getting pods..."
-        kubectl get pods -n sdsu-shen-climate-lab | grep corrdiff
+        kubectl get pods -n sdsu-shen-climate-lab -w | grep corrdiff
 
-	sleep 5 
-        
-        status=$(kubectl get pod corrdiff-nim-laurahu -n sdsu-shen-climate-lab -o jsonpath='{.status.phase}')
-	
-        
-        if [[ "$status" == "Running" ]]; then 
-            echo "Pod is running!"
-            kubectl logs -f deployment/corrdiff-nim-laurahu -n sdsu-shen-climate-lab
-        else 
-	    echo "Please wait for the container to be created..."
-	    kubectl get pods -n sdsu-shen-climate-lab -w | grep corrdiff 
-
-        fi
     fi
 }
 
