@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: corrdiff-nim-laurahu
-  namespace: sdsu-shen-climate-lab
+  name: corrdiff-nim-<YOUR NAME>
+  namespace: <NAMESPACE>
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: corrdiff-nim-laurahu
+      app: corrdiff-nim-<YOUR NAME>
   template:
     metadata:
       labels:
-        app: corrdiff-nim-laurahu
+        app: corrdiff-nim-<YOUR NAME>
     spec:
       imagePullSecrets:
       - name: ngc-secret
@@ -29,7 +29,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: corrdiff-nim
-        image: nvcr.io/nim/nvidia/corrdiff:1.0.0
+        image: nvcr.io/nim/nvidia/corrdiff:1.1.0
         ports:
         - containerPort: 8000
           name: http
@@ -68,11 +68,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: corrdiff-nim-service-laurahu
-  namespace: sdsu-shen-climate-lab
+  name: corrdiff-nim-service-<YOUR NAME>
+  namespace: <NAME SPACE>
 spec:
   selector:
-    app: corrdiff-nim-laurahu
+    app: corrdiff-nim-<YOUR NAME>
   ports:
   - protocol: TCP
     port: 8000
