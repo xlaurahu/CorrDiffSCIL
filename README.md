@@ -1,10 +1,9 @@
 # Earth-2 Correction Diffusion Model 1.0.0 User Guide
 A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff NIM 1.0.0
 
-## Required Installations 
+## Required Installations in JupyterHub
 
 You should have `conda` in your Jupyter terminal and make sure `python3 --version` > 3.10 
-
 
 ```
 pip install earth2studio
@@ -21,7 +20,6 @@ print(earth2studio.__version__)
 
 Install submodules NVIDIA Earth-2 Correction Diffusion in NIM to ensure that data loads safely: 
 
-
 ```
 pip install earth2studio[corrdiff]
 pip install earth2studio[data]
@@ -30,19 +28,24 @@ pip install earth2studio[data]
 
 ## Launching the NIM
 
-To gain easy access to the CorrDiff model, we want to use the CorrDiff NIM(NVIDIA Inference Microservice) provided by Earth2Studio. In order to acquire the NIM, we need to register a personal API Key for the process [HERE](https://build.nvidia.com/settings/api-keys). It is recommended that you paste your key somewhere you have easy access to. 
+To gain easy access to the CorrDiff model, we want to use the CorrDiff NIM(NVIDIA Inference Microservice) provided by NVIDIA. To acquire the NIM, we need to register a personal API Key for the process [HERE](https://build.nvidia.com/settings/api-keys). 
 
 Note that your key value starts with *nvapi-* and ends with *vEg*. Your key is only valid for one year. If you ever lose your key, you should delete the old one and generate a new API Key. 
 
 >[!CAUTION]
 >Your personal key should be kept private at all times.
 
-To properly launch the NIM on your NVIDIA pod, download and edit the corrdiff-nim-deployment.yaml file to your username and change the value to your personal API key.
+Now, go to your terminal and create a secret inference for your key:
 
+```zsh
+kubectl create secret generic ngc-api-key \
+  --from-literal=NGC_API_KEY=<YOUR API KEY> \
+  -n sdsu-shen-climate-lab
 ```
-name: NGC_API_KEY
-  value: "YOUR API KEY"
-```
+Replace <YOUR API KEY> with your actual api key value.
+
+To launch the NIM container, download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> with your username and <YOUR NAMESPACE> with the title of your namespace.
+
 
 To create the deployment, run the following in your terminal:
 
