@@ -11,7 +11,7 @@ Events:
   Type     Reason   Age                From     Message
   ----     ------   ----               ----     -------
 ```
-Identify strings such as `Warning, Failed` or `Failed to pull image` and check the message given after; you should be able to see what exactly went wrong during the image pull. Please make sure the version of Corrdiff you are deploying is `corrdiff:1.1.0`.
+Identify strings such as `Warning, Failed` or `Failed to pull image` and check the message given after; you should be able to see the exact error message during the image pull. Please make sure the version of Corrdiff you are deploying is `corrdiff:1.0.0` since version 1.1.0 requires additional approval.
 
 If it is an authentication error, the best thing to do is to delete your previous API key and start a new one. 
 
