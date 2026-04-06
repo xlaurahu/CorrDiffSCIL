@@ -1,5 +1,5 @@
-# Earth-2 Correction-Diffusion Model 
-A guide for generating AI weather forecast using NVIDIA Earth2Studio CorrDiff Model 
+# Earth-2 Correction Diffusion Model 1.0.0 User Guide
+A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff NIM 1.0.0
 
 ## Required Installations 
 
