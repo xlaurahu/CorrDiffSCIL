@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: corrdiff-nim-<YOUR NAME>
-  namespace: <NAMESPACE>
+  name: corrdiff-nim-<USERNAME>
+  namespace: <YOUR NAMESPACE>
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: corrdiff-nim-<YOUR NAME>
+      app: corrdiff-nim-<USERNAME>
   template:
     metadata:
       labels:
-        app: corrdiff-nim-<YOUR NAME>
+        app: corrdiff-nim-<USERNAME>
     spec:
       imagePullSecrets:
       - name: ngc-secret
@@ -29,27 +29,30 @@ spec:
       restartPolicy: Always
       containers:
       - name: corrdiff-nim
-        image: nvcr.io/nim/nvidia/corrdiff:1.1.0
+        image: nvcr.io/nim/nvidia/corrdiff:1.0.0
         ports:
         - containerPort: 8000
           name: http
         env:
         - name: NGC_API_KEY
-          value: "<YOUR API KEY>"
+          valueFrom:
+            secretKeyRef:
+              name: ngc-api-key
+              key: NGC_API_KEY
         resources:
           requests:
-            memory: "16Gi" #adjust based on availability and usage 
-            cpu: "2" #adjust based on availability and usage 
+            memory: "16Gi"
+            cpu: "2"
             nvidia.com/gpu: "1"
           limits:
-            memory: "16Gi" #adjust based on availability and usage 
-            cpu: "2" #adjust based on availability and usage 
+            memory: "16Gi"
+            cpu: "2"
             nvidia.com/gpu: "1"
         volumeMounts:
         - name: dshm
           mountPath: /dev/shm
       volumes:
-      - name: dshm 
+      - name: dshm
         emptyDir:
           medium: Memory
           sizeLimit: 16Gi
@@ -68,14 +71,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: corrdiff-nim-service-<YOUR NAME>
-  namespace: <NAME SPACE>
+  name: corrdiff-nim-service-<USERNAME>
+  namespace: <YOUR NAMESPACE>
 spec:
   selector:
-    app: corrdiff-nim-<YOUR NAME>
+    app: corrdiff-nim-<USERNAME>
   ports:
   - protocol: TCP
     port: 8000
     targetPort: 8000
   type: ClusterIP
-
