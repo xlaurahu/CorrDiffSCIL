@@ -1,4 +1,4 @@
-# Earth-2 Correction Diffusion Model 1.0.0 User Guide
+# Earth-2 Correction Diffusion NIM User Guide
 A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff NIM 1.0.0
 
 ## Required Installations in JupyterHub
@@ -26,7 +26,7 @@ pip install earth2studio[data]
 ```
 
 
-## Launching the NIM
+## NGC API Key
 
 To gain easy access to the CorrDiff model, we want to use the CorrDiff NIM(NVIDIA Inference Microservice) provided by NVIDIA. To acquire the NIM, we need to register a personal API Key for the process [HERE](https://build.nvidia.com/settings/api-keys). 
 
@@ -44,18 +44,30 @@ kubectl create secret generic ngc-api-key \
 ```
 Replace <YOUR API KEY> with your actual api key value.
 
-To launch the NIM container, download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> with your username and <YOUR NAMESPACE> with the title of your namespace.
+Download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> with your username and <YOUR NAMESPACE> with the title of your namespace.
 
+To verify that the secret exists:
 
-To create the deployment, run the following in your terminal:
+```zsh
+kubectl get secrets -n <YOUR NAMESPACE>
+```
+
+To verify that the key grants you access to the container:
+```zsh
+curl -u '$oauthtoken:<YOUR API KEY>' "https://nvcr.io/proxy_auth?scope=repository:nim/nvidia/corrdiff:pull"
+```
+
+## Launching the NIM
+
+To launch the NIM, run the following in your terminal:
 
 ```
-kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n <YOUR LAB NAMESPACE>
+kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n <YOUR NAMESPACE>
 ```
 
 Then run:
 ```
-kubectl get pods -n <YOUR LAB NAMESPACE> | grep corrdiff
+kubectl get pods -n <YOUR NAMESPACE> | grep corrdiff
 ```
 
 >[!TIP]
@@ -70,7 +82,7 @@ The script includes API key validation and NIM health check; it is a prerequisit
 
 Note that CorrDiff NIM only generates raw tensor outputs; users should handle metadata post-processing. The sample script includes channel-specific ensemble mean and other post-processing strategies, which are suitable for hurricane tracking. Visit the CorrDiff model card for more information on inputs and outputs. 
 
-The predicted **windspeed(m/s)**, **precipitation(mm)**, and **vorticity(/s)** for Hurricane Helene:
+The predicted **windspeed(m/s)**, **precipitation(mm)**, and additional variable **vorticity(/s)** for Hurricane Helene:
 
 ![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
 
@@ -98,6 +110,11 @@ kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 
 ### Bonus .zshrc shortcuts
 Mac users can download the .zshrc shortcut from `MacOSshorcut.sh`
+
+
+>[!NOTE]
+>The new corrdiff version 1.1.0 is out on 1/20/2026, however, special access is required.
+
 
 
 
