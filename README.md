@@ -3,11 +3,11 @@ A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff
 
 ![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
 
-## Important Prerequests
+## Important Prerequesits
 
 In order to deploy CorrDiff NIM, you need to be added to a namespace in NRP Nautilus hypercluster. You also need `kubectl` and `kubelogin` from Kubernetes for pulling the container from the NIM.   
 
-If you are currently not in a namespace, please contact your admin. To install `kubectl`, follow the instruction [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/Kubernetes.md).
+If you are currently not in a namespace, please contact your admin. To install `kubectl` and gain access to the GPU clusters, follow the instructions [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/Kubernetes.md).
 
 ## NGC API Key
 
