@@ -3,7 +3,7 @@ A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff
 
 ![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
 
-## Important Prerequesits
+## Important Prerequisites
 
 In order to deploy CorrDiff NIM, you need to be added to a namespace in NRP Nautilus hypercluster. You also need `kubectl` and `kubelogin` from Kubernetes for pulling the container from the NIM.   
 
@@ -13,14 +13,14 @@ If you are currently not in a namespace, please contact your admin. To install `
 
 To acquire the NIM, we need to create an NVIDIA NGC account and generate a personal API Key
 
-Creat an account [HERE](https://ngc.nvidia.com/signin). 
+Create an account [HERE](https://ngc.nvidia.com/signin). 
 
-After your account is setup, click on your profile on the top right corner then go to `Setup`. 
+After your account is setup, click on your profile on the top right corner, then go to `Setup`. 
 Once you are in the `Setup` section, find `API Keys` and click on Generate API Key. 
 
 In the API Keys section, you can see all the personal keys you have created. Click on `Generate Personal Key` and add key detials. Make sure you select all the services under Key Permission before it is generated. 
 
-Copy and paste the key only you have access to. NGC does not save your key values for you, if you ever lose your key, you can always generate a new API Key. 
+Copy and paste the key that only you have access to. NGC does not save your key values for you, if you ever lose your key, you can always generate a new API Key. 
 
 >[!CAUTION]
 >Your personal key should be kept private at all times. 
@@ -28,7 +28,7 @@ Copy and paste the key only you have access to. NGC does not save your key value
 With your API key values, go to your terminal and create a secret using `kubectl` for your key:
 
 ```
-kubectl create secret docker-registry ngc-secret \
+kubectl create secret docker-registry ngc-secret-<USERNAME> \
   --docker-server=nvcr.io \
   --docker-username='$oauthtoken' \
   --docker-password= 'YOUR API KEY' \
@@ -39,11 +39,11 @@ Replace `'YOUR API KEY'` with your actual key values.
 Then create the ngc-api-key 
 
 ```
-kubectl create secret docker ngc-api-key \
+kubectl create secret docker ngc-api-key-<USERNAME> \
   --from-literal=NGC_API_KEY= 'YOUR API KEY' \
   -n sdsu-shen-climate-lab
 ```
-Replace `'YOUR API KEY'` with your actual key values.
+Replace `'YOUR API KEY'` with your actual key values and replace <USERNAME> with your username.
 
 Download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> with your username and <YOUR NAMESPACE> with the title of your namespace. 
 
@@ -55,9 +55,9 @@ kubectl get secrets -n <YOUR NAMESPACE>
 If they are properly stored in your system, you should see:
 
 ```
-NAME                  TYPE                             DATA   AGE
-ngc-secret            kubernetes.io/dockerconfigjson   1      2m
-ngc-api-key           Opaque                           1      2m
+NAME                            TYPE                             DATA   AGE
+ngc-secret-<USERNAME>            kubernetes.io/dockerconfigjson   1      2m
+ngc-api-key-<USERNAME>           Opaque                           1      2m
 ```
 
 ---
@@ -81,20 +81,18 @@ kubectl get pods -n <YOUR NAMESPACE> -w | grep corrdiff
 ---
 ## Required Installations in JupyterHub
 
-You should have `conda` in your Jupyter terminal and make sure `python3 --version` > 3.10 
-
+Install `earth2studio` in your kernel 
 ```
 pip install earth2studio
 ```
-
-Activate earth2studio kernel 'conda activate earth2studio'.
-
 Verify installation in your Python3 kernel 
 
 ```
 import earth2studio
 print(earth2studio.__version__)
 ```
+
+Make sure your python version is >3.10.
 
 Install submodules NVIDIA Earth-2 Correction Diffusion in NIM to ensure that data loads safely: 
 
