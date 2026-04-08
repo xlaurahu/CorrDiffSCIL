@@ -1,6 +1,78 @@
 # Earth-2 Correction Diffusion NIM User Guide
 A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff NIM 1.0.0
 
+![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
+
+## NGC API Key
+
+To acquire the NIM, we need to create an NVIDIA NGC account and generate a personal API Key
+
+Creat an account [HERE](https://ngc.nvidia.com/signin). 
+
+After your account is setup, click on your profile on the top right corner then go to `Setup`. 
+Once you are in the `Setup` section, find `API Keys` and click on Generate API Key. 
+
+In the API Keys section, you can see all the personal keys you have created. Click on `Generate Personal Key` and add key detials. Make sure you select all the services under Key Permission before it is generated. 
+
+Copy and paste the key only you have access to. NGC does not save your key values for you, if you ever lose your key, you can always generate a new API Key. 
+
+>[!CAUTION]
+>Your personal key should be kept private at all times. 
+
+With your API key values, go to your terminal and create a secret using `kubectl` for your key:
+
+```
+kubectl create secret docker-registry ngc-secret \
+  --docker-server=nvcr.io \
+  --docker-username='$oauthtoken' \
+  --docker-password= 'YOUR API KEY' \
+  -n sdsu-shen-climate-lab
+```
+Replace `'YOUR API KEY'` with your actual key values.
+
+Then create the ngc-api-key 
+
+```
+kubectl create secret docker ngc-api-key \
+  --from-literal=NGC_API_KEY= 'YOUR API KEY' \
+  -n sdsu-shen-climate-lab
+```
+Replace `'YOUR API KEY'` with your actual key values.
+
+Download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> with your username and <YOUR NAMESPACE> with the title of your namespace. 
+
+To verify that the secret exists:
+
+```
+kubectl get secrets -n <YOUR NAMESPACE>
+```
+If they are properly stored in your system, you should see:
+
+```
+NAME                  TYPE                             DATA   AGE
+ngc-secret            kubernetes.io/dockerconfigjson   1      2m
+ngc-api-key           Opaque                           1      2m
+```
+
+---
+
+## Launching the NIM
+
+To launch the NIM, run the following in your terminal:
+
+```
+kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n <YOUR NAMESPACE>
+```
+
+Then run:
+```
+kubectl get pods -n <YOUR NAMESPACE> -w | grep corrdiff
+```
+
+>[!TIP]
+>It takes about 5-10 mins for the Kubernetes cluster to download the images(~26GB), keep checking the live status of the container in watch mode. The container is ready when the status shows _RUNNING_. To check your live connection logs, run `kubectl logs -f deployment/corrdiff-nim-laurahu -n sdsu-shen-climate-lab` in your terminal. 
+
+---
 ## Required Installations in JupyterHub
 
 You should have `conda` in your Jupyter terminal and make sure `python3 --version` > 3.10 
@@ -24,71 +96,28 @@ Install submodules NVIDIA Earth-2 Correction Diffusion in NIM to ensure that dat
 pip install earth2studio[corrdiff]
 pip install earth2studio[data]
 ```
-
-
-## NGC API Key
-
-To gain easy access to the CorrDiff model, we want to use the CorrDiff NIM(NVIDIA Inference Microservice) provided by NVIDIA. To acquire the NIM, we need to register a personal API Key for the process [HERE](https://build.nvidia.com/settings/api-keys). 
-
-Note that your key value starts with *nvapi-* and ends with *vEg*. Your key is only valid for one year. If you ever lose your key, you should delete the old one and generate a new API Key. 
-
->[!CAUTION]
->Your personal key should be kept private at all times.
-
-Now, go to your terminal and create a secret inference for your key:
-
-```zsh
-kubectl create secret generic ngc-api-key \
-  --from-literal=NGC_API_KEY=<YOUR API KEY> \
-  -n sdsu-shen-climate-lab
-```
-Replace <YOUR API KEY> with your actual api key value.
-
-Download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> with your username and <YOUR NAMESPACE> with the title of your namespace.
-
-To verify that the secret exists:
-
-```zsh
-kubectl get secrets -n <YOUR NAMESPACE>
-```
-
-To verify that the key grants you access to the container:
-```zsh
-curl -u '$oauthtoken:<YOUR API KEY>' "https://nvcr.io/proxy_auth?scope=repository:nim/nvidia/corrdiff:pull"
-```
-
-## Launching the NIM
-
-To launch the NIM, run the following in your terminal:
-
-```
-kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n <YOUR NAMESPACE>
-```
-
-Then run:
-```
-kubectl get pods -n <YOUR NAMESPACE> | grep corrdiff
-```
-
->[!TIP]
->It takes about 5-10 mins for the Kubernetes cluster to download the images(~26GB), keep checking the live status of the container in watch mode by running `kubectl get pods -n <YOUR LAB NAMESPACE> -w | grep corrdiff`. The container is ready when the status shows _RUNNING_. To check your live connection logs, run `kubectl logs -f deployment/corrdiff-nim-laurahu -n sdsu-shen-climate-lab` in your terminal. 
-
+---
 
 ## Run CorrDiff NIM
 
-To make predictions using CorrDiff NIM, a sample script that generates predictions for _Hurricane Helene(9/26/24 - 9/27/24)_ can be found under the file name `CorrDiffHurrHeleVis.ipynb`. 
+Create a designated folder in your JupyterHub called `corrdiff`
+
+Download the files named `corrdiff_output_lat.npy`, `corrdiff_output_lon.npy` from this Github repository, and upload it to the folder. These files tell us how the output is mapped onto CONUS. 
+
+Download `CorrDiffHurrHeleVis.ipynb`, this is the ipynb file that deploys NIM to generate downscaled outputs. 
+
+### About the ipynb Script 
 
 The script includes API key validation and NIM health check; it is a prerequisite to ensure that the status of both checkpoints is good before running inferences. The runtime for your inference depends on your sample size and step size. Users are recommended to limit the inference runtime by adjusting the timeout. 
 
 Note that CorrDiff NIM only generates raw tensor outputs; users should handle metadata post-processing. The sample script includes channel-specific ensemble mean and other post-processing strategies, which are suitable for hurricane tracking. Visit the CorrDiff model card for more information on inputs and outputs. 
 
-The predicted **windspeed(m/s)**, **precipitation(mm)**, and additional variable **vorticity(/s)** for Hurricane Helene:
+---
+## Troubleshooting
 
-![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
+Common issues encountered during when deploying CorrDiff NIM v1.0.0 and their solutions can be found [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/troubleshoot.md). 
 
-The predicted hurricane track against HRRR_FX predictions and ground truth:
-
-![Predicted track](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurrHele_Prediction_track.png)
+---
 
 ## Delete Deployment 
 
@@ -97,7 +126,6 @@ To free up space for other users, one should always delete their NIM container o
 kubectl delete deployment corrdiff-nim-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 ```
-
 
 ## References
 
@@ -108,12 +136,12 @@ kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 
 
 
-### Bonus .zshrc shortcuts
-Mac users can download the .zshrc shortcut from `MacOSshorcut.sh`
+
+
 
 
 >[!NOTE]
->The new corrdiff version 1.1.0 is out on 1/20/2026, however, special access is required.
+>The new corrdiff version 1.1.0 is out on 1/20/2026, this version requires AI Enterprise subscription.
 
 
 
