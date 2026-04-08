@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: corrdiff-nim-<USERNAME>
-  namespace: <YOUR NAMESPACE>
+  namespace: sdsu-shen-climate-lab
 spec:
   replicas: 1
   selector:
@@ -14,70 +14,86 @@ spec:
         app: corrdiff-nim-<USERNAME>
     spec:
       imagePullSecrets:
-      - name: ngc-secret
+        - name: ngc-secret
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-            - matchExpressions:
-              - key: nautilus.io/csu-tide
-                operator: Exists
-              - key: nvidia.com/gpu.product
-                operator: In
-                values:
-                - NVIDIA-L40
+              - matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    values:
+                      - NVIDIA-L40
       restartPolicy: Always
       containers:
-      - name: corrdiff-nim
-        image: nvcr.io/nim/nvidia/corrdiff:1.0.0
-        ports:
-        - containerPort: 8000
-          name: http
-        env:
-        - name: NGC_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: ngc-api-key
-              key: NGC_API_KEY
-        resources:
-          requests:
-            memory: "16Gi"
-            cpu: "2"
-            nvidia.com/gpu: "1"
-          limits:
-            memory: "16Gi"
-            cpu: "2"
-            nvidia.com/gpu: "1"
-        volumeMounts:
-        - name: dshm
-          mountPath: /dev/shm
+        - name: corrdiff-nim
+          image: nvcr.io/nim/nvidia/corrdiff:1.0.0
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: NGC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ngc-api-key
+                  key: NGC_API_KEY
+            - name: EARTH2NIM_TARGET_BATCHSIZE
+              value: "4"
+          resources:
+            requests:
+              memory: "16Gi"
+              cpu: "2"
+              nvidia.com/gpu: "1"
+            limits:
+              memory: "16Gi"
+              cpu: "2"
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: nim-cache
+              mountPath: /opt/nim/.cache
+          readinessProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /v1/health/live
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 20
       volumes:
-      - name: dshm
-        emptyDir:
-          medium: Memory
-          sizeLimit: 16Gi
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+        - name: nim-cache
+          emptyDir: {}
       tolerations:
-      - key: nautilus.io/csu-tide
-        operator: Exists
-        effect: NoSchedule
-      - key: nautilus.io/sdsu-fix
-        operator: Exists
-        effect: NoSchedule
-      - key: nautilus.io/reservation
-        operator: Equal
-        value: csu-tide
-        effect: NoSchedule
+        - key: nautilus.io/csu-tide
+          operator: Exists
+          effect: NoSchedule
+        - key: nautilus.io/sdsu-fix
+          operator: Exists
+          effect: NoSchedule
+        - key: nautilus.io/reservation
+          operator: Equal
+          value: csu-tide
+          effect: NoSchedule
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: corrdiff-nim-service-<USERNAME>
-  namespace: <YOUR NAMESPACE>
+  namespace: sdsu-shen-climate-lab
 spec:
   selector:
     app: corrdiff-nim-<USERNAME>
   ports:
-  - protocol: TCP
-    port: 8000
-    targetPort: 8000
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
   type: ClusterIP
