@@ -14,7 +14,7 @@ spec:
         app: corrdiff-nim-<USERNAME>
     spec:
       imagePullSecrets:
-        - name: ngc-secret
+        - name: ngc-secret-<USERNAME>
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -35,7 +35,7 @@ spec:
             - name: NGC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: ngc-api-key
+                  name: ngc-api-key-<USERNAME>
                   key: NGC_API_KEY
             - name: EARTH2NIM_TARGET_BATCHSIZE
               value: "4"
