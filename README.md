@@ -5,7 +5,7 @@ A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff
 
 ## Important Prerequisites
 
-In order to deploy CorrDiff NIM, you need to be added to a namespace in NRP Nautilus hypercluster. You also need `kubectl` and `kubelogin` from Kubernetes for pulling the container from the NIM.   
+In order to deploy CorrDiff NIM, you need to be added to a namespace in the NRP Nautilus hypercluster. You also need `kubectl` and `kubelogin` from Kubernetes for pulling the container from the NIM.   
 
 If you are currently not in a namespace, please contact your admin. To install `kubectl` and gain access to the GPU clusters, follow the instructions [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/Kubernetes.md).
 
@@ -15,12 +15,12 @@ To acquire the NIM, we need to create an NVIDIA NGC account and generate a perso
 
 Create an account [HERE](https://ngc.nvidia.com/signin). 
 
-After your account is setup, click on your profile on the top right corner, then go to `Setup`. 
-Once you are in the `Setup` section, find `API Keys` and click on Generate API Key. 
+After your account is setup, click on your profile on the top right corner, then go to `Account Settings`. 
+Once you are in the `Account Settings` section, scroll down to find `API Keys` and click on Generate API Key. 
 
-In the API Keys section, you can see all the personal keys you have created. Click on `Generate Personal Key` and add key detials. Make sure you select all the services under Key Permission before it is generated. 
+In the API Keys section, you can see all the personal keys you have created. Click on `Generate Personal Key` and add key details. Make sure you select all the services under Key Permission before it is generated. 
 
-Copy and paste the key that only you have access to. NGC does not save your key values for you, if you ever lose your key, you can always generate a new API Key. 
+Copy and paste the key that only you have access to. NGC does not save your key values for you; if you ever lose your key, you can always generate a new API Key. 
 
 >[!CAUTION]
 >Your personal key should be kept private at all times. 
@@ -45,10 +45,7 @@ kubectl create secret docker ngc-api-key-<USERNAME> \
 ```
 Replace `'YOUR API KEY'` with your actual key values and replace <USERNAME> with your username.
 
-Download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> with your username and <YOUR NAMESPACE> with the title of your namespace. 
-
-To verify that the secret exists:
-
+Check that your secret and api key exist:
 ```
 kubectl get secrets -n <YOUR NAMESPACE>
 ```
@@ -59,6 +56,8 @@ NAME                            TYPE                             DATA   AGE
 ngc-secret-<USERNAME>            kubernetes.io/dockerconfigjson   1      2m
 ngc-api-key-<USERNAME>           Opaque                           1      2m
 ```
+
+Download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> with your username and <YOUR NAMESPACE> with the title of your namespace [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/corrdiff-nim-deployment.yaml). Please store the file in a path where you run your Kubernetes. 
 
 ---
 
@@ -92,7 +91,7 @@ import earth2studio
 print(earth2studio.__version__)
 ```
 
-Make sure your python version is >3.10.
+Make sure your Python version is >3.10.
 
 Install submodules NVIDIA Earth-2 Correction Diffusion in NIM to ensure that data loads safely: 
 
@@ -106,7 +105,7 @@ pip install earth2studio[data]
 
 Create a designated folder in your JupyterHub called `corrdiff`
 
-Download the files named `corrdiff_output_lat.npy`, `corrdiff_output_lon.npy` from this Github repository, and upload it to the folder. These files tell us how the output is mapped onto CONUS. 
+Download the files named `corrdiff_output_lat.npy`, `corrdiff_output_lon.npy` from this GitHub repository, and upload them to the folder. These files tell us how the output is mapped onto CONUS. 
 
 Download `CorrDiffHurrHeleVis.ipynb`, this is the ipynb file that deploys NIM to generate downscaled outputs. 
 
@@ -119,7 +118,7 @@ Note that CorrDiff NIM only generates raw tensor outputs; users should handle me
 ---
 ## Troubleshooting
 
-Common issues encountered during when deploying CorrDiff NIM v1.0.0 and their solutions can be found [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/troubleshoot.md). 
+Common issues encountered when deploying CorrDiff NIM v1.0.0 and their solutions can be found [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/troubleshoot.md). 
 
 ---
 
@@ -145,7 +144,7 @@ kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 
 
 >[!NOTE]
->The new corrdiff version 1.1.0 is out on 1/20/2026, this version requires AI Enterprise subscription.
+>The new corrdiff version 1.1.0 is out on 1/20/2026. This version requires an AI Enterprise subscription.
 
 
 
