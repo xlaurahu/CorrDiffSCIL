@@ -15,11 +15,6 @@ To acquire the NIM, we need to create an NVIDIA NGC account and generate a perso
 
 Create an account [HERE](https://ngc.nvidia.com/signin). 
 
-After your account is setup, click on your profile on the top right corner, then go to `Account Settings`. 
-Once you are in the `Account Settings` section, scroll down to find `API Keys` and click on Generate API Key. 
-
-In the API Keys section, you can see all the personal keys you have created. Click on `Generate Personal Key` and add key details. Make sure you select all the services under Key Permission before it is generated. 
-
 Copy and paste the key that only you have access to. NGC does not save your key values for you; if you ever lose your key, you can always generate a new API Key. 
 
 >[!CAUTION]
@@ -61,7 +56,7 @@ Download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> 
 
 ---
 
-## Launching the NIM
+## Launch CorrDiff NIM
 
 To launch the NIM, run the following in your terminal:
 
@@ -107,22 +102,22 @@ Create a designated folder in your JupyterHub called `corrdiff`
 
 Download the files named `corrdiff_output_lat.npy`, `corrdiff_output_lon.npy` from this GitHub repository, and upload them to the folder. These files tell us how the output is mapped onto CONUS. 
 
-Download `CorrDiffHurrHeleVis.ipynb`, this is the ipynb file that deploys NIM to generate downscaled outputs. 
+Examples are stored in location-named folders.
 
 ### About the ipynb Script 
 
-The script includes API key validation and NIM health check; it is a prerequisite to ensure that the status of both checkpoints is good before running inferences. The runtime for your inference depends on your sample size and step size. Users are recommended to limit the inference runtime by adjusting the timeout. 
+The script includes API key validation and a NIM health check; it is a prerequisite to ensure that both checkpoints are healthy before running inferences. The runtime for your inference depends on your sample size and step size. We recommend limiting the inference runtime by adjusting the timeout. 
 
 Note that CorrDiff NIM only generates raw tensor outputs; users should handle metadata post-processing. The sample script includes channel-specific ensemble mean and other post-processing strategies, which are suitable for hurricane tracking. Visit the CorrDiff model card for more information on inputs and outputs. 
 
 ---
 ## Troubleshooting
 
-Common issues encountered when deploying CorrDiff NIM v1.0.0 and their solutions can be found [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/troubleshoot.md). 
+Common issues encountered when deploying CorrDiff NIM and their solutions can be found [HERE](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/troubleshoot.md). 
 
 ---
 
-## Delete Deployment 
+## Delete Containers 
 
 To free up space for other users, one should always delete their NIM container once they are done deploying it. To delete your deployment, run the following commands in your terminal. 
 ```
@@ -135,10 +130,6 @@ kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 * [NVIDIA NIM](https://docs.nvidia.com/nim/earth-2/corrdiff/latest/overview.html)
 * [Model Card](https://build.nvidia.com/nvidia/corrdiff/modelcard)
 * [Earth2Studio](https://github.com/NVIDIA/earth2studio)
-
-
-
-
 
 
 
