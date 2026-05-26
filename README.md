@@ -27,7 +27,7 @@ kubectl create secret docker-registry ngc-secret-<USERNAME> \
   --docker-server=nvcr.io \
   --docker-username='$oauthtoken' \
   --docker-password= 'YOUR API KEY' \
-  -n sdsu-shen-climate-lab
+  -n <YOUR NAMESPACE>
 ```
 Replace `'YOUR API KEY'` with your actual key values.
 
@@ -36,9 +36,9 @@ Then create the ngc-api-key
 ```
 kubectl create secret docker ngc-api-key-<USERNAME> \
   --from-literal=NGC_API_KEY= 'YOUR API KEY' \
-  -n sdsu-shen-climate-lab
+  -n <YOUR NAMESPACE>
 ```
-Replace `'YOUR API KEY'` with your actual key values and replace <USERNAME> with your username.
+Replace `'YOUR API KEY'` with your actual key values and replace `<USERNAME>` and `<YOUR NAMESPACE>` with your designated username and namespace.
 
 Check that your secret and api key exist:
 ```
