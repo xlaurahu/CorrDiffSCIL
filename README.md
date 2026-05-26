@@ -61,7 +61,7 @@ Download and edit the corrdiff-nim-deployment.yaml file by replacing <USERNAME> 
 To launch the NIM, run the following in your terminal:
 
 ```
-kubectl create -f corrdiff-nim-deployment-<YOUR NAME>.yaml -n <YOUR NAMESPACE>
+kubectl create -f corrdiff-nim-deployment-<USERNAME>.yaml -n <YOUR NAMESPACE>
 ```
 
 Then run:
@@ -70,7 +70,7 @@ kubectl get pods -n <YOUR NAMESPACE> -w | grep corrdiff
 ```
 To check your live connection logs, run:
 ```
-kubectl logs -f deployment/corrdiff-nim-laurahu -n <YOUR NAMESPACE>
+kubectl logs -f deployment/corrdiff-nim-<USERNAME> -n <YOUR NAMESPACE>
 ```
 
 >[!TIP]
