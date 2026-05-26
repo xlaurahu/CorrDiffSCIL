@@ -68,9 +68,13 @@ Then run:
 ```
 kubectl get pods -n <YOUR NAMESPACE> -w | grep corrdiff
 ```
+To check your live connection logs, run:
+```
+kubectl logs -f deployment/corrdiff-nim-laurahu -n <YOUR NAMESPACE>
+```
 
 >[!TIP]
->It takes about 5-10 mins for the Kubernetes cluster to download the images(~26GB), keep checking the live status of the container in watch mode. The container is ready when the status shows _RUNNING_. To check your live connection logs, run `kubectl logs -f deployment/corrdiff-nim-laurahu -n sdsu-shen-climate-lab` in your terminal. 
+>It takes about 5-10 mins for the Kubernetes cluster to download the images(~26GB), keep checking the live status of the container in watch mode. The container is ready when the status shows _RUNNING_. 
 
 ---
 ## Required Installations in JupyterHub
