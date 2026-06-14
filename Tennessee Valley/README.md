@@ -32,7 +32,7 @@ Together, these properties make MRMS the most appropriate validation source for 
 
 ## Uncertainty Measure with 8 Samples
 
-![City Timeseries](https://github.com/xlaurahu/LowerOhioRiver/blob/main/corrdiff_city_timeseries.png)
+<img src="https://github.com/xlaurahu/CorrDiffSCIL/blob/main/Tennessee%20Valley/corrdiff_city_timeseries.png" width="400"/>
 
 ---
 
