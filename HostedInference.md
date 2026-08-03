@@ -4,50 +4,58 @@ This guide is for people who want to **run CorrDiff inference without deploying 
 You don't need `kubectl`, an NGC account, a Kubernetes namespace, or a GPU — the model runs on a
 NIM that is already deployed and hosted publicly. All you need is Python.
 
+There are three parts: **1)** one-time setup, **2)** send a forecast to the model and get results
+back (Steps 1–4), **3)** plot what you got (Step 5).
+
 > [!NOTE]
 > This endpoint is shared and has no authentication. Please be considerate of usage (keep
 > `samples`/`steps` reasonable) since it runs on a shared lab GPU that other people are using too.
 > It's only reachable while the host has their NIM deployment running — if requests fail to
 > connect, it may simply be offline. There is no uptime guarantee.
 
-## Requirements
+## Setup
 
 You need [uv](https://docs.astral.sh/uv/getting-started/installation/) installed — that's it, no
-manual `pip install` of anything. Clone or download this repo, then from its root run:
+manual `pip install` of anything.
 
 ```bash
-uv sync
-```
-
-This reads [pyproject.toml](pyproject.toml) and installs everything into a local `.venv`
-(`requests`, `numpy`, a **CPU-only** build of `torch`, and `earth2studio[data]`) pinned to the
-exact versions in [uv.lock](uv.lock), so it resolves the same way on any machine. None of this
-touches a GPU — `earth2studio[data]` is only used to download and format public weather forecast
-data (GEFS); the actual CorrDiff model runs remotely on the host's NIM.
-
-Run any of the snippets below with `uv run python your_script.py`, or `uv run python` for an
-interactive shell — no need to activate the venv yourself.
-
-# 1. Install uv (installs its own Python too — no separate Python setup needed)
+# Install uv (installs its own Python too — no separate Python setup needed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.local/bin/env   # or restart your shell so `uv` is on PATH
 
-# 2. Clone the repo
+# Clone the repo
 git clone https://github.com/xlaurahu/CorrDiffSCIL.git
 cd CorrDiffSCIL
 
-# 3. Install locked dependencies (requests, numpy, CPU-only torch, earth2studio[data])
+# Install locked dependencies: requests, numpy, CPU-only torch, earth2studio[data],
+# matplotlib, cartopy, jupyter — all pinned to exact versions in uv.lock
 uv sync
+```
 
-# 4. Sanity-check the hosted endpoint (synthetic input, fast)
-uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
+None of this touches a GPU — `earth2studio[data]` is only used to download and format public
+weather forecast data (GEFS); the actual CorrDiff model runs remotely on the host's NIM.
 
-**Quick sanity check:** before writing anything, confirm the endpoint itself is reachable and
-working with the bundled smoke test (uses a synthetic array, not real weather data):
+**Sanity check** — before writing any code, confirm the endpoint itself is reachable with the
+bundled smoke test (sends a synthetic array, not real weather data, so it's quick):
 
 ```bash
 uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
 ```
+
+If that prints `SUCCESS`, you're ready for Steps 1–5 below.
+
+## Pick how you'll run the code
+
+Both options use the exact same `uv sync`'d environment — no separate install, no venv
+activation needed.
+
+| | Command | Then |
+|---|---|---|
+| **Notebook** | `uv run jupyter notebook` | Opens Jupyter in your browser. Create a new notebook and paste each numbered step below into its own cell, in order. |
+| **Script / REPL** | `uv run python your_script.py`, or just `uv run python` | Paste the steps into a `.py` file, or run them one at a time in the interactive shell. |
+
+If you're not sure which to pick: the notebook is easier for exploring and re-plotting results
+(Step 5) without re-running the whole request each time.
 
 ## Step 1 — Check the endpoint is up
 
@@ -184,11 +192,15 @@ projection = ccrs.LambertConformal(
 
 fig = plt.figure(figsize=(12, 8))
 ax = fig.add_subplot(1, 1, 1, projection=projection)
+# Without this, the axes default to a much wider view than the CONUS patch, so the
+# map data renders as a barely-visible sliver while the colorbar still shows full-size.
+ax.set_extent([lons.min(), lons.max(), lats.min(), lats.max()], crs=ccrs.PlateCarree())
 c = ax.pcolormesh(lons, lats, windspeed, transform=ccrs.PlateCarree(), cmap=mpl.cm.gnuplot)
 ax.coastlines(linewidth=1)
 ax.add_feature(cfeature.STATES, linewidth=0.5, edgecolor="white")
 fig.colorbar(c, ax=ax, label="10m wind speed (m/s)")
 fig.savefig("windspeed.png", dpi=150)
+plt.show()  # displays inline if you're in a notebook; no-op otherwise
 ```
 
 > [!NOTE]
@@ -203,3 +215,7 @@ fig.savefig("windspeed.png", dpi=150)
   server-side config the host needs to raise, not something you can fix client-side.
 - **Request hangs for a long time** — expected. Diffusion inference time scales with
   `samples × steps`. Lower both if you want faster (lower-quality) results.
+- **Map shows a colorbar but no data (Step 5)** — if you added `ax.gridlines(draw_labels=True, ...)`
+  on top of the `LambertConformal` example, some Cartopy/Matplotlib version combos throw partway
+  through label placement, which can silently drop the map layer while the colorbar (drawn
+  separately) still renders. Either drop `draw_labels=True`, or add gridlines without labels.

@@ -11,6 +11,7 @@ dependencies = [
     "matplotlib>=3.8",
     "cartopy>=0.22",
     "scipy>=1.11",
+    "jupyter>=1.1.1",
 ]
 
 [tool.uv.sources]
@@ -20,3 +21,4 @@ torch = [{ index = "pytorch-cpu" }]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
+
