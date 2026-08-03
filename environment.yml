@@ -1,6 +1,15 @@
 name: corrdiff-hosted-client
 channels:
   - conda-forge
+# torch (pip, bundles Intel MKL/libiomp5md.dll) and the conda-forge scientific stack
+# (bundles LLVM's libomp.dll) both link OpenMP. Loading both into one process on
+# Windows crashes at import time with "OMP: Error #15: ... libiomp5md.dll already
+# initialized." This is conda's own persistent-env-var mechanism (applied on every
+# `conda activate`, regardless of shell) rather than the official fix — genuinely
+# fixing it would mean getting everything onto a single OpenMP runtime, which isn't
+# practical while torch comes from pip and eccodes/pygrib come from conda-forge.
+variables:
+  KMP_DUPLICATE_LIB_OK: "TRUE"
 dependencies:
   - python=3.12
   - pygrib

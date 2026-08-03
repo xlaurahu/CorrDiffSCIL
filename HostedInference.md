@@ -84,6 +84,17 @@ This resolves and installs everything — `pygrib`, `cfgrib`, `eccodes`, and `ca
 conda-forge, plus `torch` (CPU-only), `earth2studio`, `matplotlib`, `jupyter`, and the rest via
 pip inside that same conda environment. Expect this to take a few minutes the first time.
 
+`environment.yml` also sets `KMP_DUPLICATE_LIB_OK=TRUE` automatically on every `conda activate` —
+without it, `from earth2studio.data import ...` crashes at import time with `OMP: Error #15:
+Initializing libomp.dll, but found libiomp5md.dll already initialized`, because pip's `torch`
+and conda-forge's scientific stack link two different OpenMP runtimes. If you created the
+environment before this was added, run once and reactivate:
+```powershell
+conda env config vars set KMP_DUPLICATE_LIB_OK=TRUE -n corrdiff-hosted-client
+conda deactivate
+conda activate corrdiff-hosted-client
+```
+
 **3. Run the sanity check:**
 
 ```powershell
@@ -129,10 +140,26 @@ CorrDiff expects a specific stack of GEFS variables cropped to a CONUS bounding 
 lead-time field. This runs entirely on CPU.
 
 ```python
+import os
+import posixpath
 from datetime import datetime, timedelta
 import numpy as np
 import torch
 from earth2studio.data import GEFS_FX, GEFS_FX_721x1440
+
+# Windows-only fix: earth2studio's GEFS source builds S3 object keys with os.path.join,
+# which uses backslashes on Windows -> invalid keys -> 404 FileNotFoundError. This makes
+# it use forward slashes instead, without touching os.path anywhere else in the process.
+# No-op on Mac/Linux, where os.path.join already produces forward slashes.
+if os.name == "nt":
+    import earth2studio.data.gefs as _gefs_module
+
+    class _PosixOSProxy:
+        path = posixpath
+        def __getattr__(self, name):
+            return getattr(os, name)
+
+    _gefs_module.os = _PosixOSProxy()
 
 GEFS_SELECT_VARIABLES = ["u10m", "v10m", "t2m", "r2m", "sp", "msl", "tcwv"]
 GEFS_VARIABLES = [
@@ -276,3 +303,17 @@ plt.show()  # displays inline if you're in a notebook; no-op otherwise
   separately) still renders. Either drop `draw_labels=True`, or add gridlines without labels.
 - **`uv sync` fails with `eccodeslib ... doesn't have a source distribution or wheel for the
   current platform` (Windows)** — expected, see [Windows Setup via conda](#windows-setup-via-conda).
+- **Jupyter kernel dies with no traceback, specifically on `from earth2studio.data import ...`
+  (Windows/conda)** — this is `OMP: Error #15`, a duplicate-OpenMP-runtime crash between pip's
+  `torch` and conda-forge's scientific stack. It's silent in Jupyter because it's a native crash,
+  not a Python exception — to see the real error, run the same import in a plain `python` REPL
+  from Anaconda Prompt instead. Fixed automatically in `environment.yml` going forward; if your
+  environment predates that, see the `KMP_DUPLICATE_LIB_OK` fix in
+  [Windows Setup via conda](#windows-setup-via-conda).
+- **`FileNotFoundError` / 404 fetching a `.idx` file with a backslash in the path (Windows,
+  Step 2)**, e.g. `noaa-gefs-pds\gefs.20240926/00\atmos\...` — this is a real bug in
+  `earth2studio`'s GEFS source: it builds S3 object keys with `os.path.join`, which uses `\` on
+  Windows, producing a key that doesn't exist. It's a genuine upstream issue, not anything in this
+  guide's setup. The `_PosixOSProxy` block already included at the top of Step 2 above works
+  around it — if you're seeing this error, you're likely running an older copy of Step 2 without
+  that fix; re-copy the current version.
