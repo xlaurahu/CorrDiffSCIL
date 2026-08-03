@@ -19,8 +19,12 @@ You need [uv](https://docs.astral.sh/uv/getting-started/installation/) installed
 manual `pip install` of anything.
 
 ```bash
-# Install uv (installs its own Python too — no separate Python setup needed)
+# Install uv (installs its own Python too — no separate Python setup needed) on MacOS and Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install uv on WindowsOS
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
 source $HOME/.local/bin/env   # or restart your shell so `uv` is on PATH
 
 # Clone the repo
