@@ -157,6 +157,44 @@ Output channel order is `["u10m", "v10m", "t2m", "tp", "csnow", "cicep", "cfrzr"
 For lat/lon coordinates to map the CONUS output grid, download `corrdiff_output_lat.npy` and
 `corrdiff_output_lon.npy` from this repo.
 
+## Step 5 — Visualize a variable
+
+`matplotlib` and `cartopy` are included via `uv sync`. Here's the ensemble-mean 10m wind speed
+plotted on a Lambert Conformal projection over CONUS:
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+
+lats = np.load("corrdiff_output_lat.npy")
+lons = np.load("corrdiff_output_lon.npy") - 360
+
+u10 = np.mean([s[0, 0, 0] for s in samples], axis=0)
+v10 = np.mean([s[0, 0, 1] for s in samples], axis=0)
+windspeed = np.sqrt(u10**2 + v10**2)
+
+projection = ccrs.LambertConformal(
+    central_longitude=np.median(lons),
+    central_latitude=np.median(lats),
+    standard_parallels=(33, 45),
+)
+
+fig = plt.figure(figsize=(12, 8))
+ax = fig.add_subplot(1, 1, 1, projection=projection)
+c = ax.pcolormesh(lons, lats, windspeed, transform=ccrs.PlateCarree(), cmap=mpl.cm.gnuplot)
+ax.coastlines(linewidth=1)
+ax.add_feature(cfeature.STATES, linewidth=0.5, edgecolor="white")
+fig.colorbar(c, ax=ax, label="10m wind speed (m/s)")
+fig.savefig("windspeed.png", dpi=150)
+```
+
+> [!NOTE]
+> The first time `cfeature.STATES`/`.coastlines()` run, cartopy downloads Natural Earth map
+> data from the internet and caches it locally — expect a short delay on first use only.
+
 ## Troubleshooting
 
 - **Connection refused / timeout on Step 1** — the host's NIM deployment likely isn't running
