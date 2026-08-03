@@ -5,6 +5,13 @@ A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff
 
 :movie_camera: **Watch a video tutorial on CorrDiff Deployment [Here](https://www.youtube.com/watch?v=rKQSJZzlZLo)!**
 
+> [!TIP]
+> **Don't have GPU access and just want to run inference?** You don't need to deploy your own
+> NIM. See [HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md)
+> to call an already-running CorrDiff endpoint directly from any Python environment.
+
+The rest of this guide is for deploying your **own** CorrDiff NIM (requires GPU cluster access).
+
 ## Important Prerequisites
 
 In order to deploy CorrDiff NIM, you need to be added to a namespace in the NRP Nautilus hypercluster. You also need `kubectl` and `kubelogin` from Kubernetes for pulling the container from the NIM.   
@@ -77,6 +84,36 @@ kubectl logs -f deployment/corrdiff-nim-<USERNAME> -n <YOUR NAMESPACE>
 
 >[!TIP]
 >It takes about 5-10 mins for the Kubernetes cluster to download the images(~26GB), keep checking the live status of the container in watch mode. The container is ready when the status shows _RUNNING_. 
+
+---
+
+## (Optional) Expose Your NIM to Users Without Cluster Access
+
+By default the Service created above (`corrdiff-nim-service-<USERNAME>`) is `ClusterIP`, meaning
+it's only reachable from other pods inside the same Nautilus cluster (e.g. your own JupyterHub
+notebook) — not from someone's laptop or an external Python environment.
+
+If you want to let others run inference against your deployment without needing `kubectl`, an NGC
+account, or a namespace, apply an Ingress to give it a public HTTPS URL:
+
+```
+kubectl apply -f corrdiff-nim-ingress.yaml -n <YOUR NAMESPACE>
+```
+
+Edit `corrdiff-nim-ingress.yaml` first — replace `laurahu` with your own username. This repo's
+manifest is already set to the values confirmed working on this cluster (`sdsu-shen-climate-lab`
+uses the `haproxy` ingress class with auto-provisioned TLS for `*.nrp-nautilus.io` hosts, no
+cert-manager annotation needed) — if you're on a different Nautilus namespace, double check with
+`kubectl get ingress -n <your namespace>` for an existing example to match.
+
+>[!CAUTION]
+>This makes your GPU inference endpoint reachable from the public internet with no
+>authentication. Anyone with the URL can submit inference requests and consume your shared GPU
+>quota. Share the URL only with people you trust to use it responsibly, and delete the Ingress
+>(`kubectl delete ingress corrdiff-nim-ingress-<USERNAME> -n <YOUR NAMESPACE>`) when you're done
+>hosting.
+
+Once it's up, point people to [HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md), which walks external users through calling your public URL from any Python environment — no GPU required.
 
 ---
 ## Required Installations in JupyterHub

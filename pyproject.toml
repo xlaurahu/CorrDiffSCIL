@@ -1,0 +1,19 @@
+[project]
+name = "corrdiff-hosted-client"
+version = "0.1.0"
+description = "Client-side dependencies for calling a hosted CorrDiff NIM endpoint (no GPU required)"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "requests>=2.31",
+    "numpy>=1.26",
+    "torch>=2.2",
+    "earth2studio[data]",
+]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

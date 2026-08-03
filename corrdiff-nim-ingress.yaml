@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: corrdiff-nim-ingress-laurahu
+  namespace: sdsu-shen-climate-lab
+spec:
+  ingressClassName: haproxy
+  tls:
+    - hosts:
+        - corrdiff-laurahu.nrp-nautilus.io
+  rules:
+    - host: corrdiff-laurahu.nrp-nautilus.io
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: corrdiff-nim-service-laurahu
+                port:
+                  number: 8000
