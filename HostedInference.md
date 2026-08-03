@@ -28,6 +28,20 @@ data (GEFS); the actual CorrDiff model runs remotely on the host's NIM.
 Run any of the snippets below with `uv run python your_script.py`, or `uv run python` for an
 interactive shell — no need to activate the venv yourself.
 
+# 1. Install uv (installs its own Python too — no separate Python setup needed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env   # or restart your shell so `uv` is on PATH
+
+# 2. Clone the repo
+git clone https://github.com/xlaurahu/CorrDiffSCIL.git
+cd CorrDiffSCIL
+
+# 3. Install locked dependencies (requests, numpy, CPU-only torch, earth2studio[data])
+uv sync
+
+# 4. Sanity-check the hosted endpoint (synthetic input, fast)
+uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
+
 **Quick sanity check:** before writing anything, confirm the endpoint itself is reachable and
 working with the bundled smoke test (uses a synthetic array, not real weather data):
 
