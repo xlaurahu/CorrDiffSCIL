@@ -33,8 +33,8 @@ uv sync
 ```
 
 > [!WARNING]
-> **Windows users:** don't run the block above from PowerShell — `uv sync` will fail there (see
-> why, and the full fix, in [Windows Setup via WSL](#windows-setup-via-wsl) below).
+> **Windows users:** don't run the block above — `uv sync` will fail natively on Windows (see
+> why, and the fix, in [Windows Setup via conda](#windows-setup-via-conda) below).
 
 None of this touches a GPU — `earth2studio[data]` is only used to download and format public
 weather forecast data (GEFS); the actual CorrDiff model runs remotely on the host's NIM.
@@ -48,62 +48,56 @@ uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
 
 If that prints `SUCCESS`, you're ready for Steps 1–5 below.
 
-## Windows Setup (via WSL)
+## Windows Setup (via conda)
 
-`earth2studio[data]` needs `pygrib`/`eccodes`/`eccodeslib` to decode the GRIB2 files GEFS forecast
-data ships in, and **none of those packages have ever published a native Windows wheel** — that's
-upstream, not something a version pin fixes; ecCodes only supports Windows through conda-forge,
-not pip. So `uv sync` cannot succeed in PowerShell / native Windows Python, full stop.
+`earth2studio[data]` needs `pygrib`/`eccodes` to decode the GRIB2 files GEFS forecast data ships
+in, and **neither package has ever published a native Windows wheel on PyPI** — that's upstream,
+not something a version pin fixes; ecCodes only ships Windows builds through conda-forge, not pip.
+So `uv sync` cannot succeed in a native Windows Python environment, full stop.
 
-The fix: run everything from **WSL** (Windows Subsystem for Linux) instead. WSL gives you a real
-Linux environment inside Windows, so `uv sync` resolves the same manylinux wheels that work on
-Mac/Linux. Same `pyproject.toml`, same `uv.lock`, same commands — just run from an Ubuntu terminal
-instead of PowerShell.
+The fix: use **conda** instead of `uv` on Windows, pulling `pygrib`/`cfgrib`/`eccodes` from
+conda-forge (which does publish Windows builds of all three) instead of PyPI. This repo includes
+[environment.yml](environment.yml) for exactly this — same dependency set as `pyproject.toml`,
+built and tested to avoid pip ever touching the Windows-incompatible `eccodeslib` package.
 
-**1. Install WSL** — open PowerShell **as Administrator** and run:
+**1. Install Miniconda** — open PowerShell and run:
 
 ```powershell
-wsl --install
+winget install -e --id Anaconda.Miniconda3
 ```
 
-This installs WSL2 and Ubuntu by default. Reboot if prompted.
+(No winget? Download the installer directly from
+[anaconda.com/download](https://www.anaconda.com/download) — either Miniconda or full Anaconda
+works.) Once installed, open **"Anaconda Prompt (miniconda3)"** from the Start menu — that's the
+terminal to use for everything below; it has `conda` on `PATH` automatically.
 
-**2. Launch Ubuntu** — open the "Ubuntu" app from the Start menu (first launch takes a minute to
-finish setting up). It'll ask you to create a Linux username and password — these are separate
-from your Windows login and can be anything.
+**2. Clone the repo and create the environment:**
 
-**3. From inside that Ubuntu terminal, work in your Linux home directory**, not `/mnt/c/...`
-(your Windows `C:` drive mounted into WSL). Both work, but the Linux filesystem is significantly
-faster and avoids permission/path issues:
-
-```bash
-cd ~
-```
-
-**4. Run the exact same setup as Mac/Linux, from here:**
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.local/bin/env
-
+```powershell
 git clone https://github.com/xlaurahu/CorrDiffSCIL.git
 cd CorrDiffSCIL
-uv sync
+conda env create -f environment.yml
+conda activate corrdiff-hosted-client
 ```
 
-**5. Run the sanity check:**
+This resolves and installs everything — `pygrib`, `cfgrib`, `eccodes`, and `cartopy` from
+conda-forge, plus `torch` (CPU-only), `earth2studio`, `matplotlib`, `jupyter`, and the rest via
+pip inside that same conda environment. Expect this to take a few minutes the first time.
 
-```bash
-uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
+**3. Run the sanity check:**
+
+```powershell
+python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
 ```
 
-If it prints `SUCCESS`, you're fully set up — continue with "Pick how you'll run the code" and
-Steps 1–5 below exactly as written, all from this same Ubuntu terminal.
+If it prints `SUCCESS`, you're fully set up.
 
-> [!TIP]
-> If you use the notebook option (`uv run jupyter notebook`), WSL2 forwards `localhost` to
-> Windows automatically on modern Windows 10/11 — clicking the printed `http://localhost:8888/...`
-> link, or pasting it into any Windows browser, just works. No extra networking setup needed.
+> [!IMPORTANT]
+> For the rest of this guide, run everything from this same Anaconda Prompt with
+> `corrdiff-hosted-client` activated (`conda activate corrdiff-hosted-client` if you open a new
+> terminal). Wherever the guide says `uv run python ...`, use plain `python ...` instead — same
+> for `uv run jupyter notebook` → plain `jupyter notebook`. Everything else (the code in each
+> step) is identical.
 
 ## Pick how you'll run the code
 
@@ -280,3 +274,5 @@ plt.show()  # displays inline if you're in a notebook; no-op otherwise
   on top of the `LambertConformal` example, some Cartopy/Matplotlib version combos throw partway
   through label placement, which can silently drop the map layer while the colorbar (drawn
   separately) still renders. Either drop `draw_labels=True`, or add gridlines without labels.
+- **`uv sync` fails with `eccodeslib ... doesn't have a source distribution or wheel for the
+  current platform` (Windows)** — expected, see [Windows Setup via conda](#windows-setup-via-conda).

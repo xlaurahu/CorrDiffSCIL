@@ -1,0 +1,38 @@
+name: corrdiff-hosted-client
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pygrib
+  - cfgrib
+  - eccodes
+  - cartopy
+  - numpy
+  - scipy
+  - matplotlib
+  - requests
+  - jupyter
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cpu
+      - torch
+      # earth2studio itself, WITHOUT the [data] extra: that extra force-installs
+      # cfgrib/eccodes/eccodeslib from PyPI, which have no Windows wheels. conda
+      # already provides working equivalents above. The rest of this list is the
+      # [data] extra's other dependencies, installed by hand instead.
+      - earth2studio
+      - arraylake
+      - cdsapi
+      - ecmwf-opendata
+      - eumdac
+      - gribberish
+      - httpx==0.28.1
+      - icechunk
+      - intake-esgf
+      - pcodec
+      - planetary-computer
+      - pybufrkit
+      - pyproj
+      - pystac-client
+      - rasterio
+      - rioxarray
