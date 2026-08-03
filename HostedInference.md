@@ -19,12 +19,8 @@ You need [uv](https://docs.astral.sh/uv/getting-started/installation/) installed
 manual `pip install` of anything.
 
 ```bash
-# Install uv (installs its own Python too — no separate Python setup needed) on MacOS and Linux
+# Install uv (installs its own Python too — no separate Python setup needed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install uv on WindowsOS
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-
 source $HOME/.local/bin/env   # or restart your shell so `uv` is on PATH
 
 # Clone the repo
@@ -35,6 +31,10 @@ cd CorrDiffSCIL
 # matplotlib, cartopy, jupyter — all pinned to exact versions in uv.lock
 uv sync
 ```
+
+> [!WARNING]
+> **Windows users:** don't run the block above from PowerShell — `uv sync` will fail there (see
+> why, and the full fix, in [Windows Setup via WSL](#windows-setup-via-wsl) below).
 
 None of this touches a GPU — `earth2studio[data]` is only used to download and format public
 weather forecast data (GEFS); the actual CorrDiff model runs remotely on the host's NIM.
@@ -47,6 +47,63 @@ uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
 ```
 
 If that prints `SUCCESS`, you're ready for Steps 1–5 below.
+
+## Windows Setup (via WSL)
+
+`earth2studio[data]` needs `pygrib`/`eccodes`/`eccodeslib` to decode the GRIB2 files GEFS forecast
+data ships in, and **none of those packages have ever published a native Windows wheel** — that's
+upstream, not something a version pin fixes; ecCodes only supports Windows through conda-forge,
+not pip. So `uv sync` cannot succeed in PowerShell / native Windows Python, full stop.
+
+The fix: run everything from **WSL** (Windows Subsystem for Linux) instead. WSL gives you a real
+Linux environment inside Windows, so `uv sync` resolves the same manylinux wheels that work on
+Mac/Linux. Same `pyproject.toml`, same `uv.lock`, same commands — just run from an Ubuntu terminal
+instead of PowerShell.
+
+**1. Install WSL** — open PowerShell **as Administrator** and run:
+
+```powershell
+wsl --install
+```
+
+This installs WSL2 and Ubuntu by default. Reboot if prompted.
+
+**2. Launch Ubuntu** — open the "Ubuntu" app from the Start menu (first launch takes a minute to
+finish setting up). It'll ask you to create a Linux username and password — these are separate
+from your Windows login and can be anything.
+
+**3. From inside that Ubuntu terminal, work in your Linux home directory**, not `/mnt/c/...`
+(your Windows `C:` drive mounted into WSL). Both work, but the Linux filesystem is significantly
+faster and avoids permission/path issues:
+
+```bash
+cd ~
+```
+
+**4. Run the exact same setup as Mac/Linux, from here:**
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
+
+git clone https://github.com/xlaurahu/CorrDiffSCIL.git
+cd CorrDiffSCIL
+uv sync
+```
+
+**5. Run the sanity check:**
+
+```bash
+uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
+```
+
+If it prints `SUCCESS`, you're fully set up — continue with "Pick how you'll run the code" and
+Steps 1–5 below exactly as written, all from this same Ubuntu terminal.
+
+> [!TIP]
+> If you use the notebook option (`uv run jupyter notebook`), WSL2 forwards `localhost` to
+> Windows automatically on modern Windows 10/11 — clicking the printed `http://localhost:8888/...`
+> link, or pasting it into any Windows browser, just works. No extra networking setup needed.
 
 ## Pick how you'll run the code
 
