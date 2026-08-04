@@ -5,12 +5,14 @@ A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff
 
 :movie_camera: **Watch a video tutorial on CorrDiff Deployment [Here](https://www.youtube.com/watch?v=rKQSJZzlZLo)!**
 
-> [!TIP]
-> **Don't have GPU access and just want to run inference?** You don't need to deploy your own
-> NIM. See [HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md)
-> to call an already-running CorrDiff endpoint directly from any Python environment.
+This guide covers two paths depending on your access:
 
-The rest of this guide is for deploying your **own** CorrDiff NIM (requires GPU cluster access).
+- **[GPU Access: Deploy Your Own NIM](#gpu-access-deploy-your-own-nim)** — for those with a GPU cluster namespace.
+- **[Non-GPU Access: Hosted Inference](#non-gpu-access-hosted-inference)** — for those without GPU/Kubernetes access.
+
+---
+
+# GPU Access: Deploy Your Own NIM
 
 ## Important Prerequisites
 
@@ -94,26 +96,16 @@ it's only reachable from other pods inside the same Nautilus cluster (e.g. your 
 notebook) — not from someone's laptop or an external Python environment.
 
 If you want to let others run inference against your deployment without needing `kubectl`, an NGC
-account, or a namespace, apply an Ingress to give it a public HTTPS URL:
-
-```
-kubectl apply -f corrdiff-nim-ingress.yaml -n <YOUR NAMESPACE>
-```
-
-Edit `corrdiff-nim-ingress.yaml` first — replace `laurahu` with your own username. This repo's
-manifest is already set to the values confirmed working on this cluster (`sdsu-shen-climate-lab`
-uses the `haproxy` ingress class with auto-provisioned TLS for `*.nrp-nautilus.io` hosts, no
-cert-manager annotation needed) — if you're on a different Nautilus namespace, double check with
-`kubectl get ingress -n <your namespace>` for an existing example to match.
+account, or a namespace, see [ExposeNIMPublicly.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/ExposeNIMPublicly.md)
+for the full step-by-step: applying an Ingress, why it's configured the way it is, verifying it
+actually works end-to-end, and pointing people to
+[HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md) to
+call your public URL — no GPU required on their end.
 
 >[!CAUTION]
 >This makes your GPU inference endpoint reachable from the public internet with no
 >authentication. Anyone with the URL can submit inference requests and consume your shared GPU
->quota. Share the URL only with people you trust to use it responsibly, and delete the Ingress
->(`kubectl delete ingress corrdiff-nim-ingress-<USERNAME> -n <YOUR NAMESPACE>`) when you're done
->hosting.
-
-Once it's up, point people to [HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md), which walks external users through calling your public URL from any Python environment — no GPU required.
+>quota. Share the URL only with people you trust to use it responsibly.
 
 ---
 ## Required Installations in JupyterHub
@@ -168,6 +160,21 @@ kubectl delete deployment corrdiff-nim-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 ```
 
+---
+
+# Non-GPU Access: Hosted Inference
+
+>[!NOTE]
+>This path is intended for special events or deployment demos only. If you expect to use CorrDiff
+>on an ongoing basis, gaining personal or organizational access is recommended instead — see
+>[GPU Access: Deploy Your Own NIM](#gpu-access-deploy-your-own-nim) above.
+
+**Don't have GPU access and just want to run inference?** You don't need to deploy your own
+NIM. See [HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md)
+to call an already-running CorrDiff endpoint directly from any Python environment.
+
+---
+
 ## References
 
 * [NVIDIA NIM](https://docs.nvidia.com/nim/earth-2/corrdiff/latest/overview.html)
@@ -179,7 +186,6 @@ kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 
 >[!NOTE]
 >The new corrdiff version 1.1.0 is out on 1/20/2026. This version requires an AI Enterprise subscription.
-
 
 
 
