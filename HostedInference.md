@@ -13,7 +13,26 @@ back (Steps 1–4), **3)** plot what you got (Step 5).
 > It's only reachable while the host has their NIM deployment running — if requests fail to
 > connect, it may simply be offline. There is no uptime guarantee.
 
-## Setup
+# Prerequisite
+
+You need to have `git` installed on your system. 
+
+```bash
+# Install git on Windows OS
+winget install --id Git.Git -e --source winget
+
+# Install git on MacOS using homebrew
+brew install git
+
+# Install on Linux
+apt-get install git
+```
+Visit [git](https://git-scm.com/) for more details.
+
+---
+# Setup 
+
+## MacOS/Linux Setup
 
 You need [uv](https://docs.astral.sh/uv/getting-started/installation/) installed — that's it, no
 manual `pip install` of anything.
@@ -84,16 +103,24 @@ This resolves and installs everything — `pygrib`, `cfgrib`, `eccodes`, and `ca
 conda-forge, plus `torch` (CPU-only), `earth2studio`, `matplotlib`, `jupyter`, and the rest via
 pip inside that same conda environment. Expect this to take a few minutes the first time.
 
-`environment.yml` also sets `KMP_DUPLICATE_LIB_OK=TRUE` automatically on every `conda activate` —
-without it, `from earth2studio.data import ...` crashes at import time with `OMP: Error #15:
-Initializing libomp.dll, but found libiomp5md.dll already initialized`, because pip's `torch`
-and conda-forge's scientific stack link two different OpenMP runtimes. If you created the
-environment before this was added, run once and reactivate:
-```powershell
-conda env config vars set KMP_DUPLICATE_LIB_OK=TRUE -n corrdiff-hosted-client
-conda deactivate
-conda activate corrdiff-hosted-client
-```
+
+> [!TIP]
+> `environment.yml` automatically sets `KMP_DUPLICATE_LIB_OK=TRUE` whenever you run `conda activate`. This prevents an import-time crash such as:
+>
+> ```text
+> OMP: Error #15: Initializing libomp.dll, but found libiomp5md.dll already initialized
+> ```
+>
+> The error occurs because pip's `torch` and the conda-forge scientific stack load different OpenMP runtimes.
+>
+> If you created the environment **before** this configuration was added, run the following once, then reactivate the environment:
+>
+> ```powershell
+> conda env config vars set KMP_DUPLICATE_LIB_OK=TRUE -n corrdiff-hosted-client
+> conda deactivate
+> conda activate corrdiff-hosted-client
+> ```
+
 
 **3. Run the sanity check:**
 
@@ -110,14 +137,13 @@ If it prints `SUCCESS`, you're fully set up.
 > for `uv run jupyter notebook` → plain `jupyter notebook`. Everything else (the code in each
 > step) is identical.
 
-## Pick how you'll run the code
+# Running Forecasts
 
-Both options use the exact same `uv sync`'d environment — no separate install, no venv
-activation needed.
+First, we want to pick where to run the code
 
 | | Command | Then |
 |---|---|---|
-| **Notebook** | `uv run jupyter notebook` | Opens Jupyter in your browser. Create a new notebook and paste each numbered step below into its own cell, in order. |
+| **Notebook** | `uv run jupyter notebook` or just `jupyter notebook`| Opens Jupyter in your browser. Create a new notebook and paste each numbered step below into its own cell, in order. |
 | **Script / REPL** | `uv run python your_script.py`, or just `uv run python` | Paste the steps into a `.py` file, or run them one at a time in the interactive shell. |
 
 If you're not sure which to pick: the notebook is easier for exploring and re-plotting results
@@ -211,8 +237,8 @@ r = requests.post(
     f"{BASE_URL}/v1/infer",
     headers={"accept": "application/x-tar"},
     data={
-        "samples": 5,   # number of ensemble members
-        "steps": 10,    # diffusion steps
+        "samples": 2,   # number of ensemble members
+        "steps": 8,    # diffusion steps
         "seed": 0,
     },
     files={"input_array": ("input_array", open("corrdiff_inputs.npy", "rb"))},
@@ -289,7 +315,9 @@ plt.show()  # displays inline if you're in a notebook; no-op otherwise
 > The first time `cfeature.STATES`/`.coastlines()` run, cartopy downloads Natural Earth map
 > data from the internet and caches it locally — expect a short delay on first use only.
 
-## Troubleshooting
+---
+
+# Troubleshooting
 
 - **Connection refused / timeout on Step 1** — the host's NIM deployment likely isn't running
   right now. Check with them.
