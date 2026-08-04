@@ -13,6 +13,25 @@ back (Steps 1–4), **3)** plot what you got (Step 5).
 > It's only reachable while the host has their NIM deployment running — if requests fail to
 > connect, it may simply be offline. There is no uptime guarantee.
 
+# Prerequisite
+
+You need to have `git` installed on your system. 
+
+```bash
+# Install git on Windows OS
+winget install --id Git.Git -e --source winget
+
+# Install git on MacOS using homebrew
+brew install git
+
+# Install on Linux
+apt-get install git
+```
+Visit [git](https://git-scm.com/) for more details.
+
+---
+# Setup 
+
 ## MacOS/Linux Setup
 
 You need [uv](https://docs.astral.sh/uv/getting-started/installation/) installed — that's it, no
@@ -118,10 +137,9 @@ If it prints `SUCCESS`, you're fully set up.
 > for `uv run jupyter notebook` → plain `jupyter notebook`. Everything else (the code in each
 > step) is identical.
 
-## Pick how you'll run the code
+# Running Forecasts
 
-Both options use the exact same `uv sync`'d environment — no separate install, no venv
-activation needed.
+First, we want to pick where to run the code
 
 | | Command | Then |
 |---|---|---|
@@ -297,7 +315,9 @@ plt.show()  # displays inline if you're in a notebook; no-op otherwise
 > The first time `cfeature.STATES`/`.coastlines()` run, cartopy downloads Natural Earth map
 > data from the internet and caches it locally — expect a short delay on first use only.
 
-## Troubleshooting
+---
+
+# Troubleshooting
 
 - **Connection refused / timeout on Step 1** — the host's NIM deployment likely isn't running
   right now. Check with them.
