@@ -143,11 +143,16 @@ First, we want to pick where to run the code
 
 | | Command | Then |
 |---|---|---|
-| **Notebook** | `uv run jupyter notebook` or just `jupyter notebook`| Opens Jupyter in your browser. Create a new notebook and paste each numbered step below into its own cell, in order. |
-| **Script / REPL** | `uv run python your_script.py`, or just `uv run python` | Paste the steps into a `.py` file, or run them one at a time in the interactive shell. |
+| **Notebook** | `uv run jupyter notebook` or just `jupyter notebook`| Opens Jupyter in your browser. Open [RunningForecasts.ipynb](RunningForecasts.ipynb) — Steps 1–5 are already written as cells, nothing to copy. Run All and you're done. |
+| **Script / REPL** | `uv run python your_script.py`, or just `uv run python` | Paste the steps below into a `.py` file, or run them one at a time in the interactive shell. |
 
 If you're not sure which to pick: the notebook is easier for exploring and re-plotting results
 (Step 5) without re-running the whole request each time.
+
+> [!TIP]
+> The steps below walk through exactly what's in `RunningForecasts.ipynb`, cell by cell — read
+> them if you want to understand what the code does or adapt it into your own script. If you just
+> want results, you don't need to copy any of it: open the notebook and run it.
 
 ## Step 1 — Check the endpoint is up
 

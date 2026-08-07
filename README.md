@@ -95,9 +95,9 @@ By default the Service created above (`corrdiff-nim-service-<USERNAME>`) is `Clu
 it's only reachable from other pods inside the same Nautilus cluster (e.g. your own JupyterHub
 notebook) — not from someone's laptop or an external Python environment.
 
-If you want to let others run inference against your deployment without needing `kubectl`, an NGC
+If you want to let others run inference against your deployment without needing an NGC
 account, or a namespace, see [ExposeNIMPublicly.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/ExposeNIMPublicly.md)
-for the full step-by-step: applying an Ingress, why it's configured the way it is, verifying it
+for the full step-by-step: applying an kubectl Ingress, why it's configured the way it is, verifying it
 actually works end-to-end, and pointing people to
 [HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md) to
 call your public URL — no GPU required on their end.
@@ -108,7 +108,7 @@ call your public URL — no GPU required on their end.
 >quota. Share the URL only with people you trust to use it responsibly.
 
 ---
-## Required Installations in JupyterHub
+## Required Installations in Python Env.
 
 Install `earth2studio` in your kernel 
 ```
@@ -133,7 +133,7 @@ pip install earth2studio[data]
 
 ## Run CorrDiff NIM
 
-Create a designated folder in your JupyterHub called `corrdiff`
+Create a designated folder in your JupyterHub.
 
 Download the files named `corrdiff_output_lat.npy`, `corrdiff_output_lon.npy` from this GitHub repository, and upload them to the folder. These files tell us how the output is mapped onto CONUS. 
 
@@ -169,9 +169,8 @@ kubectl delete service corrdiff-nim-service-<YOUR NAME> -n <YOUR LAB NAMESPACE>
 >on an ongoing basis, gaining personal or organizational access is recommended instead — see
 >[GPU Access: Deploy Your Own NIM](#gpu-access-deploy-your-own-nim) above.
 
-**Don't have GPU access and just want to run inference?** You don't need to deploy your own
-NIM. See [HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md)
-to call an already-running CorrDiff endpoint directly from any Python environment.
+**Have limited GPU access and just want to run inference?** You don't need to deploy your own
+NIM. See [HostedInference.md](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HostedInference.md) to request an already-running CorrDiff endpoint directly from any Python environment. 
 
 ---
 
