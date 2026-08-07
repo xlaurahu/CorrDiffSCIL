@@ -228,9 +228,9 @@ def fetch_input_gefs(time: datetime, lead_time: timedelta, content_dtype: str = 
 
     return np.concatenate([select_data, pressure_data, lead_hour], axis=1)[None]
 
-# Example: forecast initialized 2024-09-26 00Z, 15-hour lead time
-time = datetime(2024, 9, 26)
-lead_time = timedelta(hours=15)  # must be a multiple of 3 hours, up to 24
+# Example: Tennessee Valley flood, forecast initialized 2025-04-04 00Z, 24-hour lead time
+time = datetime(2025, 4, 4)
+lead_time = timedelta(hours=24)  # must be a multiple of 3 hours, up to 24
 input_array = fetch_input_gefs(time, lead_time)
 np.save("corrdiff_inputs.npy", input_array)
 ```
@@ -280,39 +280,55 @@ For lat/lon coordinates to map the CONUS output grid, download `corrdiff_output_
 
 ## Step 5 — Visualize a variable
 
-`matplotlib` and `cartopy` are included via `uv sync`. Here's the ensemble-mean 10m wind speed
+`matplotlib` and `cartopy` are included via `uv sync`. Here's the ensemble-mean precipitation
 plotted on a Lambert Conformal projection over CONUS:
 
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.colors as mcolors
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
 lats = np.load("corrdiff_output_lat.npy")
 lons = np.load("corrdiff_output_lon.npy") - 360
 
-u10 = np.mean([s[0, 0, 0] for s in samples], axis=0)
-v10 = np.mean([s[0, 0, 1] for s in samples], axis=0)
-windspeed = np.sqrt(u10**2 + v10**2)
+precp = np.mean([s[0, 0, 3] for s in samples], axis=0)
+
+# Zoom to the Tennessee Valley region
+LAT_MIN, LAT_MAX = 32.0, 41.0
+LON_MIN, LON_MAX = -97.0, -82.0
+
+# GPCP-style precipitation color scale
+gpcp_colors = [
+    '#dfc2a5', '#7ec9d0', '#5eb35e', '#99cc33', '#f2f22e',
+    '#e6e600', '#ff9999', '#ff4d4d', '#cc0000', '#993366', '#1a1a1a'
+]
+continuous_cmap = mcolors.LinearSegmentedColormap.from_list("gpcp_cont", gpcp_colors)
+hour_levels = np.linspace(0, 40, 11)  # single lead time, not an accumulated total
+custom_cmap = mcolors.ListedColormap(continuous_cmap(np.linspace(0, 1, len(hour_levels) - 1)))
+norm = mcolors.BoundaryNorm(hour_levels, ncolors=custom_cmap.N)
 
 projection = ccrs.LambertConformal(
-    central_longitude=np.median(lons),
-    central_latitude=np.median(lats),
+    central_longitude=(LON_MIN + LON_MAX) / 2,
+    central_latitude=(LAT_MIN + LAT_MAX) / 2,
     standard_parallels=(33, 45),
 )
 
 fig = plt.figure(figsize=(12, 8))
 ax = fig.add_subplot(1, 1, 1, projection=projection)
-# Without this, the axes default to a much wider view than the CONUS patch, so the
-# map data renders as a barely-visible sliver while the colorbar still shows full-size.
-ax.set_extent([lons.min(), lons.max(), lats.min(), lats.max()], crs=ccrs.PlateCarree())
-c = ax.pcolormesh(lons, lats, windspeed, transform=ccrs.PlateCarree(), cmap=mpl.cm.gnuplot)
+ax.set_extent([LON_MIN, LON_MAX, LAT_MIN, LAT_MAX], crs=ccrs.PlateCarree())
+c = ax.pcolormesh(lons, lats, precp, transform=ccrs.PlateCarree(), cmap=custom_cmap, norm=norm)
 ax.coastlines(linewidth=1)
 ax.add_feature(cfeature.STATES, linewidth=0.5, edgecolor="white")
-fig.colorbar(c, ax=ax, label="10m wind speed (m/s)")
-fig.savefig("windspeed.png", dpi=150)
+
+ax.set_title(
+    f"CorrDiff Ensemble-Mean Precipitation \n{time:%Y-%m-%d %HZ} + {int(lead_time.total_seconds() // 3600)}h",
+    fontsize=13, fontweight = 'bold'
+)
+fig.colorbar(c, ax=ax, shrink=0.6, ticks=hour_levels[::2], label="Total Hourly Precipitation mm")
+fig.savefig("precp.png", dpi=150)
 plt.show()  # displays inline if you're in a notebook; no-op otherwise
 ```
 
