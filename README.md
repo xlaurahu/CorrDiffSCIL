@@ -3,7 +3,6 @@ A guide for generating an AI weather forecast using NVIDIA Earth2Studio CorrDiff
 
 ![Animated Hurricane Helene Predictions](https://github.com/xlaurahu/CorrDiffSCIL/blob/main/HurricaneHele.gif)
 
-:movie_camera: **Watch a video tutorial on CorrDiff Deployment [Here](https://www.youtube.com/watch?v=rKQSJZzlZLo)!**
 
 This guide covers two paths depending on your access:
 
@@ -13,6 +12,8 @@ This guide covers two paths depending on your access:
 ---
 
 # GPU Access: Deploy Your Own NIM
+
+:movie_camera: **Watch a video tutorial on CorrDiff Deployment [Here](https://www.youtube.com/watch?v=rKQSJZzlZLo)!**
 
 ## Important Prerequisites
 
