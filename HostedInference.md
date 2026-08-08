@@ -15,14 +15,21 @@ back (Steps 1–4), **3)** plot what you got (Step 5).
 
 # Prerequisite
 
-You need to have `git` installed on your system. 
+You need to have `git` installed on your system.
+
+**Already have it?** Check first, on any OS (Windows PowerShell, macOS, or Linux terminal) —
+if this prints a version number, skip the install below:
+
+```bash
+git --version
+```
 
 ```bash
 # Install git on Windows OS
 winget install --id Git.Git -e --source winget
 
-# Install git on MacOS using homebrew
-brew install git
+# Install git on MacOS using Apple's Xcode Command Line Tools (no Homebrew needed)
+xcode-select --install
 
 # Install on Linux
 apt-get install git
@@ -36,6 +43,13 @@ Visit [git](https://git-scm.com/) for more details.
 
 You need [uv](https://docs.astral.sh/uv/getting-started/installation/) installed — that's it, no
 manual `pip install` of anything.
+
+**Already have it?** Check first — if this prints a version number, skip straight to cloning the
+repo below:
+
+```bash
+uv --version
+```
 
 ```bash
 # Install uv (installs its own Python too — no separate Python setup needed)
@@ -79,7 +93,14 @@ conda-forge (which does publish Windows builds of all three) instead of PyPI. Th
 [environment.yml](environment.yml) for exactly this — same dependency set as `pyproject.toml`,
 built and tested to avoid pip ever touching the Windows-incompatible `eccodeslib` package.
 
-**1. Install Miniconda** — open PowerShell and run:
+**1. Install Miniconda.** Already have conda (or Anaconda) installed? Check first, from any
+terminal that has it on `PATH` — if this prints a version number, skip straight to step 2:
+
+```powershell
+conda --version
+```
+
+Otherwise, open PowerShell and run:
 
 ```powershell
 winget install -e --id Anaconda.Miniconda3
