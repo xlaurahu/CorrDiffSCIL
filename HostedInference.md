@@ -66,13 +66,6 @@ cd CorrDiffSCIL
 uv sync
 ```
 
-> [!WARNING]
-> **Windows users:** don't run the block above — `uv sync` will fail natively on Windows (see
-> why, and the fix, in [Windows Setup via conda](#windows-setup-via-conda) below).
-
-None of this touches a GPU — `earth2studio[data]` is only used to download and format public
-weather forecast data (GEFS); the actual CorrDiff model runs remotely on the host's NIM.
-
 **Sanity check** — before writing any code, confirm the endpoint itself is reachable with the
 bundled smoke test (sends a synthetic array, not real weather data, so it's quick):
 
@@ -83,16 +76,6 @@ uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
 If that prints `SUCCESS`, you're ready for Steps 1–5 below.
 
 ## Windows Setup (via conda)
-
-`earth2studio[data]` needs `pygrib`/`eccodes` to decode the GRIB2 files GEFS forecast data ships
-in, and **neither package has ever published a native Windows wheel on PyPI** — that's upstream,
-not something a version pin fixes; ecCodes only ships Windows builds through conda-forge, not pip.
-So `uv sync` cannot succeed in a native Windows Python environment, full stop.
-
-The fix: use **conda** instead of `uv` on Windows, pulling `pygrib`/`cfgrib`/`eccodes` from
-conda-forge (which does publish Windows builds of all three) instead of PyPI. This repo includes
-[environment.yml](environment.yml) for exactly this — same dependency set as `pyproject.toml`,
-built and tested to avoid pip ever touching the Windows-incompatible `eccodeslib` package.
 
 **1. Install Miniconda.** Already have conda (or Anaconda) installed? Check first, from any
 terminal that has it on `PATH` — if this prints a version number, skip straight to step 2:
