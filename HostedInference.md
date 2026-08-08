@@ -78,8 +78,6 @@ bundled smoke test (sends a synthetic array, not real weather data, so it's quic
 
 ```bash
 uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
-
-uv run python test_hosted_endpoint.py https://corrdiff-dylanhahn.nrp-nautilus.io
 ```
 
 If that prints `SUCCESS`, you're ready for Steps 1–5 below.
@@ -154,8 +152,6 @@ pip inside that same conda environment. Expect this to take a few minutes the fi
 
 ```powershell
 python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
-
-python test_hosted_endpoint.py https://corrdiff-dylanhahn.nrp-nautilus.io
 ```
 
 If it prints `SUCCESS`, you're fully set up.
