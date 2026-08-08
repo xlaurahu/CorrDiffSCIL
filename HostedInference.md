@@ -28,8 +28,10 @@ git --version
 # Install git on Windows OS
 winget install --id Git.Git -e --source winget
 
-# Install git on MacOS using Apple's Xcode Command Line Tools (no Homebrew needed)
+# Install git on MacOS using Apple's Xcode Command 
 xcode-select --install
+# If you have homebrew, you can also use 
+brew install git 
 
 # Install on Linux
 apt-get install git
@@ -52,7 +54,7 @@ uv --version
 ```
 
 ```bash
-# Install uv (installs its own Python too — no separate Python setup needed)
+# Install uv 
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.local/bin/env   # or restart your shell so `uv` is on PATH
 
@@ -60,8 +62,7 @@ source $HOME/.local/bin/env   # or restart your shell so `uv` is on PATH
 git clone https://github.com/xlaurahu/CorrDiffSCIL.git
 cd CorrDiffSCIL
 
-# Install locked dependencies: requests, numpy, CPU-only torch, earth2studio[data],
-# matplotlib, cartopy, jupyter — all pinned to exact versions in uv.lock
+# Install locked dependencies
 uv sync
 ```
 
@@ -77,6 +78,8 @@ bundled smoke test (sends a synthetic array, not real weather data, so it's quic
 
 ```bash
 uv run python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
+
+uv run python test_hosted_endpoint.py https://corrdiff-dylanhahn.nrp-nautilus.io
 ```
 
 If that prints `SUCCESS`, you're ready for Steps 1–5 below.
@@ -114,8 +117,12 @@ terminal to use for everything below; it has `conda` on `PATH` automatically.
 **2. Clone the repo and create the environment:**
 
 ```powershell
+
+# Clone the repo 
 git clone https://github.com/xlaurahu/CorrDiffSCIL.git
 cd CorrDiffSCIL
+
+# Activate the environment 
 conda env create -f environment.yml
 conda activate corrdiff-hosted-client
 ```
@@ -147,6 +154,8 @@ pip inside that same conda environment. Expect this to take a few minutes the fi
 
 ```powershell
 python test_hosted_endpoint.py https://corrdiff-laurahu.nrp-nautilus.io
+
+python test_hosted_endpoint.py https://corrdiff-dylanhahn.nrp-nautilus.io
 ```
 
 If it prints `SUCCESS`, you're fully set up.
