@@ -1,0 +1,93 @@
+# Runs corrdiff/run_daily.py on a schedule: calls the corrdiff-nim-laurahu NIM,
+# converts the result to both iCHARM zarr formats, and writes them to the
+# dedicated corrdiff-output PVC (20Gi, RWO) — pulled to the docker-compose host
+# via `kubectl cp` (see README.md; Globus was tried first but GCP-to-GCP
+# transfers require a paid subscription, so this pipeline doesn't use Globus).
+# No one needs to open JupyterHub manually once this is running.
+#
+# Prerequisite 1: create the ConfigMap holding the driver scripts from the repo:
+#
+#   kubectl create configmap corrdiff-scripts -n sdsu-shen-climate-lab \
+#     --from-file=backend/icharm/dataset_processing/corrdiff/corrdiff_predict.py \
+#     --from-file=backend/icharm/dataset_processing/corrdiff/corrdiff_to_zarr.py \
+#     --from-file=backend/icharm/dataset_processing/corrdiff/corrdiff_to_icharm_zarr.py \
+#     --from-file=backend/icharm/dataset_processing/corrdiff/run_daily.py
+#
+# Re-run that command (it will fail if the ConfigMap already exists — delete
+# it first, or use `kubectl create ... --dry-run=client -o yaml | kubectl apply -f -`)
+# whenever these scripts change.
+#
+# Prerequisite 2: the two grid .npy files must exist on the corrdiff-output PVC
+# at /corrdiff-grid/ (gitignored, not in this ConfigMap — see README.md for how
+# they were copied there).
+#
+# NOT YET APPLIED — review the schedule/resources/env below, then:
+#   kubectl apply -f backend/icharm/dataset_processing/corrdiff/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: corrdiff-daily
+  namespace: sdsu-shen-climate-lab
+spec:
+  schedule: "0 0 * * *"  # 00:00 UTC daily
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 5400  # 90 min safety cap
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: corrdiff-daily
+              image: henrylisdsu/nvidia-cuda-12.4:v2.5  # same image as jupyter-deployment-laurahu (has earth2studio)
+              command: ["python", "/app/corrdiff/run_daily.py"]
+              env:
+                - name: PYTHONPATH
+                  value: /app/corrdiff
+                - name: CORRDIFF_NIM_USERNAME
+                  value: laurahu
+                - name: CORRDIFF_OUTPUT_DIR
+                  value: /output/corrdiff
+                - name: CORRDIFF_GRID_DIR
+                  value: /output/corrdiff-grid
+                - name: CORRDIFF_HOURS
+                  value: "3,6,9,12,15,18,21,24"
+                - name: CORRDIFF_VARIABLES
+                  value: "tp,t2m"
+                - name: CORRDIFF_SAMPLES
+                  value: "5"
+                - name: CORRDIFF_STEPS
+                  value: "10"
+                - name: CORRDIFF_DATE_OFFSET_DAYS
+                  value: "1"
+              resources:
+                # No GPU requested — this only calls the NIM over HTTP and does
+                # CPU-side GEFS fetch/regridding. Add nvidia.com/gpu here (and
+                # a matching nodeAffinity, see corrdiff-nim-laurahu's deployment)
+                # if that assumption turns out to be wrong.
+                #
+                # limit:request ratio capped at 1.2 by this cluster's admission
+                # policy (container-must-meet-memory-and-cpu-ratio) — the
+                # original 2x limits (cpu 4, memory 16Gi) got rejected.
+                requests:
+                  cpu: "2"
+                  memory: 8Gi
+                limits:
+                  cpu: "2400m"
+                  memory: 9Gi
+              volumeMounts:
+                - name: corrdiff-scripts
+                  mountPath: /app/corrdiff
+                - name: corrdiff-output
+                  mountPath: /output
+          volumes:
+            - name: corrdiff-scripts
+              configMap:
+                name: corrdiff-scripts
+            - name: corrdiff-output
+              persistentVolumeClaim:
+                claimName: corrdiff-output
