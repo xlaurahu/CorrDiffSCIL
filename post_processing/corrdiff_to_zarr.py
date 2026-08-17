@@ -1,15 +1,13 @@
-"""Pack CorrDiff ensemble predictions into an iCHARM-ready Zarr store.
+"""Pack CorrDiff ensemble predictions into a consolidated Zarr store.
 
-This is the CorrDiff analogue of ``earth2_to_zarr.py``. It keeps the **same
-front-end format** iCHARM already consumes — a consolidated Zarr where each
-variable is a ``(time, lat, lon)`` field animated over time, plus **one** extra
-(non time/lat/lon) dimension that iCHARM turns into a dropdown selector.
-
-For Earth-2 that extra dimension was pressure ``level``. CorrDiff is all surface
-variables but carries an **ensemble** instead, so here the extra dimension is
-``stat`` — the ensemble statistics we already save per variable/hour
-(``mean``, ``std``, ``min``, ``max``, and any percentiles ``p10``…). The viewer
-then shows a "statistic" dropdown exactly where it used to show a level dropdown.
+Writes a consolidated Zarr where each variable is a ``(time, lat, lon)`` field
+animated over time, plus **one** extra (non time/lat/lon) dimension: ``stat`` —
+the ensemble statistics already saved per variable/hour (``mean``, ``std``,
+``min``, ``max``, and any percentiles ``p10``…). A viewer with a dropdown
+selector (e.g. iCHARM, which this format was originally built to match, mirroring
+its Earth-2 pipeline's pressure-``level`` selector) can use that dimension
+directly; anything else can just pick a ``stat`` and treat it like a normal
+``(time, lat, lon)`` cube.
 
 Input
 -----
@@ -36,11 +34,15 @@ mean of wind speed != speed of the mean components). To expose a true ensemble
 ``ws10m``, compute it per-sample in ``corrdiff_predict.py`` and save its stats,
 then it flows through here like any other variable.
 
-Usage (host, ephemeral deps):
+Usage (installed, see this folder's pyproject.toml):
+    corrdiff-to-zarr /path/to/predictions/2025-04-04 \
+        --out /path/to/output/corrdiff_2025-04-04_map.zarr
+
+Usage (ephemeral deps, no install):
     uv run --with xarray --with "zarr>=3" --with numpy --with dask \
-        python -m icharm.dataset_processing.corrdiff.corrdiff_to_zarr \
-            /path/to/OhioRiver/2025-04-04 \
-            --out /path/to/backend/datasets/corrdiff_2025-04-04_map.zarr
+        python corrdiff_to_zarr.py \
+            /path/to/predictions/2025-04-04 \
+            --out /path/to/output/corrdiff_2025-04-04_map.zarr
 """
 
 from __future__ import annotations
@@ -52,11 +54,10 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-# The CorrDiff output grid lat/lon files live alongside this script (see
-# README.md in this folder — they're gitignored, copy them from the
-# corrdiff-auto pod). They are the fine ~3 km CONUS grid — a 2-D curvilinear
-# grid, e.g. (1056, 1792) — so the store's y/x dimensions come straight from
-# these files.
+# The CorrDiff output grid lat/lon files live alongside this script by
+# default -- fetch them with `corrdiff-fetch-grid` (see README.md).
+# They are the fine ~3 km CONUS grid — a 2-D curvilinear grid, e.g.
+# (1056, 1792) — so the store's y/x dimensions come straight from these files.
 DEFAULT_GRID_DIR = Path(__file__).resolve().parent
 
 # CorrDiff output variables, in channel order (for a stable var ordering).
@@ -188,7 +189,7 @@ def assemble_from_npy(pred_dir: Path, date_str: str, grid_dir: Path) -> xr.Datas
 
 
 def _finalize(ds: xr.Dataset, dest: Path) -> None:
-    """Chunk per-timestep and write a consolidated store (iCHARM format)."""
+    """Chunk per-timestep and write a consolidated store."""
     ds = ds.chunk({"time": 1, "stat": -1, "y": -1, "x": -1})
     for v in ds.data_vars:  # CF hint that lat/lon are 2-D auxiliary coords
         ds[v].attrs["coordinates"] = "lat lon"
@@ -208,7 +209,7 @@ def convert(
     grid_dir: str | Path = DEFAULT_GRID_DIR,
     out: str | Path | None = None,
 ) -> Path:
-    """Assemble a CorrDiff prediction folder into an iCHARM Zarr and write it.
+    """Assemble a CorrDiff prediction folder into a Zarr store and write it.
 
     ``date_str`` defaults to the single date inferred from the filenames;
     ``grid_dir`` defaults to the repo root (holding the grid files); ``out``

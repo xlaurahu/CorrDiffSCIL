@@ -86,9 +86,17 @@ _LAT_SLICE = slice(148, 277)   # 129 rows
 _LON_SLICE = slice(900, 1201)  # 301 cols
 _CROP_SHAPE = (129, 301)
 
-# NIM service hostname template. The pod name embeds the JupyterHub username.
-NIM_HOST_TEMPLATE = "corrdiff-nim-service-{username}"
-NIM_PORT = 8000
+# Every NIM this package talks to is reached through its owner's public
+# Kubernetes Ingress -- a per-user HTTPS hostname, reachable from anywhere
+# (no cluster access, no kubeconfig, no GPU needed on the caller's side). This
+# is deliberately the *only* built-in way to locate a NIM: a user integrating
+# this package into their own forecasting system just needs someone's
+# username, nothing Kubernetes-shaped to configure. It has NO built-in
+# authentication -- anyone with the URL can submit inference requests against
+# that GPU, so only use a username whose NIM you trust, and only stand up
+# your own Ingress if you're prepared to share the URL that broadly. See
+# corrdiff-nim-ingress.yaml.
+PUBLIC_INGRESS_TEMPLATE = "https://corrdiff-{username}.nrp-nautilus.io"
 
 # Max forecast lead the CorrDiff model produces here.
 MAX_FORECAST_HOUR = 24
@@ -98,20 +106,37 @@ MAX_FORECAST_HOUR = 24
 # NIM service helpers
 # --------------------------------------------------------------------------- #
 
-def nim_base_url(username: str) -> str:
-    """Return the base URL of the CorrDiff NIM service for ``username``."""
-    host = NIM_HOST_TEMPLATE.format(username=username)
-    return f"http://{host}:{NIM_PORT}"
+def nim_base_url(username: str | None = None, host: str | None = None) -> str:
+    """Return the base URL of the CorrDiff NIM service.
+
+    Resolution order:
+      1. ``host`` (or the ``CORRDIFF_NIM_HOST`` env var), if given -- used
+         verbatim. Accepts a bare ``host[:port]`` or a full ``http(s)://...``
+         URL. An escape hatch for a NIM reached some other way; most users
+         won't need it.
+      2. Otherwise, ``username``'s public Ingress URL
+         (``https://corrdiff-<username>.nrp-nautilus.io``) -- the normal way
+         to reach any NIM this package knows how to find.
+    """
+    host = host or os.environ.get("CORRDIFF_NIM_HOST")
+    if host:
+        return host if "://" in host else f"http://{host}"
+    if not username:
+        raise ValueError(
+            "Need either a host (CORRDIFF_NIM_HOST / --nim-host) or a "
+            "username (for the public Ingress)."
+        )
+    return PUBLIC_INGRESS_TEMPLATE.format(username=username)
 
 
-def check_nim_health(username: str, timeout: int = 30) -> bool:
+def check_nim_health(username: str | None = None, timeout: int = 30, host: str | None = None) -> bool:
     """Check the CorrDiff NIM ``/v1/health/ready`` endpoint.
 
     Returns True if the service reports ready (HTTP 200), else False. Prints a
     short status so it is useful both interactively and in job logs. Network
     errors are caught and reported as "not ready" rather than raising.
     """
-    url = f"{nim_base_url(username)}/v1/health/ready"
+    url = f"{nim_base_url(username, host)}/v1/health/ready"
     try:
         r = requests.get(url, timeout=timeout)
     except requests.RequestException as exc:
@@ -275,20 +300,23 @@ def fetch_input_gefs(
 # --------------------------------------------------------------------------- #
 
 def infer_corrdiff(
-    username: str,
+    username: str | None,
     input_array: np.ndarray,
     samples: int,
     steps: int,
     seed: int = 0,
     timeout: int = 3000,
+    host: str | None = None,
 ) -> list[np.ndarray]:
     """POST one input array to the NIM and return the list of sample arrays.
 
     Each returned element is a full CorrDiff output sample (as stored in the
     response tar); the caller extracts the precip channel. Writes the request
     payload to a temp file because the NIM expects a multipart ``.npy`` upload.
+
+    ``host`` selects which NIM to hit -- see ``nim_base_url()``.
     """
-    url = f"{nim_base_url(username)}/v1/infer"
+    url = f"{nim_base_url(username, host)}/v1/infer"
     headers = {"accept": "application/x-tar"}
     data = {"samples": samples, "steps": steps, "seed": seed}
 
@@ -364,7 +392,7 @@ def _validate_percentiles(percentiles: Iterable[int]) -> list[int]:
 
 
 def run_prediction(
-    username: str,
+    username: str | None,
     year: int,
     month: int,
     day: int,
@@ -377,8 +405,11 @@ def run_prediction(
     seed: int = 0,
     ds_gefs=None,
     ds_gefs_select=None,
+    host: str | None = None,
 ) -> Path:
     """Run the full CorrDiff prediction for one initial condition.
+
+    ``host`` selects which NIM to hit -- see ``nim_base_url()``.
 
     For each forecast hour it builds the GEFS input, runs NIM inference, then,
     for each requested output variable, saves every sample's field plus these
@@ -424,7 +455,8 @@ def run_prediction(
 
         print("Sending inference request to NIM ...")
         raw_samples = infer_corrdiff(
-            username, input_array, samples=samples, steps=steps, seed=seed
+            username, input_array, samples=samples, steps=steps, seed=seed,
+            host=host,
         )
         print(f"Received {len(raw_samples)} sample(s).")
 
@@ -504,7 +536,18 @@ def _prompt_variables(msg: str) -> list[str]:
 def main(argv: Sequence[str] | None = None) -> int:
     """Interactive driver reproducing the notebook flow."""
     parser = argparse.ArgumentParser(description="Run CorrDiff predictions via the NIM.")
-    parser.add_argument("--username", help="JupyterHub username (NIM pod suffix).")
+    parser.add_argument(
+        "--username",
+        help="Public Ingress owner's username -- reaches "
+             "https://corrdiff-<username>.nrp-nautilus.io. No built-in auth "
+             "on that endpoint; only use one you trust.",
+    )
+    parser.add_argument(
+        "--nim-host",
+        help="Explicit NIM host/URL, overriding --username entirely (or set "
+             "CORRDIFF_NIM_HOST). Accepts host:port or a full http(s)://... URL. "
+             "Most users won't need this.",
+    )
     parser.add_argument("--year", type=int)
     parser.add_argument("--month", type=int)
     parser.add_argument("--day", type=int)
@@ -536,10 +579,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    # ---- 1. Username + NIM health check --------------------------------- #
-    username = args.username or input("NIM username (replaces {username}): ").strip()
-    print(f"\nChecking NIM health for user '{username}' ...")
-    healthy = check_nim_health(username)
+    # ---- 1. Username/host + NIM health check ----------------------------- #
+    nim_host = args.nim_host or os.environ.get("CORRDIFF_NIM_HOST")
+    username = args.username
+    if not nim_host and not username:
+        username = input("NIM username (its public Ingress owner): ").strip()
+    print(f"\nChecking NIM health ({nim_base_url(username, nim_host)}) ...")
+    healthy = check_nim_health(username, host=nim_host)
     if not healthy and not args.skip_health_check:
         cont = input("NIM is not ready. Continue anyway? [y/N]: ").strip().lower()
         if cont not in ("y", "yes"):
@@ -597,6 +643,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         seed=args.seed,
         ds_gefs=ds_gefs,
         ds_gefs_select=ds_gefs_select,
+        host=nim_host,
     )
     return 0
 

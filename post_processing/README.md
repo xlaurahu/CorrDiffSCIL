@@ -1,13 +1,116 @@
-# CorrDiff pipeline
+# CorrDiff Automation Pipeline
 
-Gets forecasts out of the live `corrdiff-nim-laurahu` NIM (NVIDIA's official
-CorrDiff container, `nvcr.io/nim/nvidia/corrdiff:1.0.0`, model
-`earth2-corrdiff-us-gefs-hrrr:1.0.0`) running on an L40 GPU in the
-`sdsu-shen-climate-lab` namespace on Nautilus, and into iCHARM's
-`backend/datasets/` + `metadata.csv`. Scripts originated in the
-`corrdiff-auto` project inside the `jupyter-deployment-laurahu` pod and were
-copied here; the pipeline has been run successfully end-to-end from this repo
-(see "Proven working" below), but is not yet fully automated.
+Standalone, unattended pipeline that pulls GEFS input, calls a running CorrDiff
+NIM (NVIDIA's official CorrDiff container,
+`nvcr.io/nim/nvidia/corrdiff:1.0.0`, model `earth2-corrdiff-us-gefs-hrrr:1.0.0`),
+and writes the forecast out as plain Zarr stores. It has no dependency on any
+particular downstream viewer or database — anything that reads Zarr (xarray,
+a notebook, a web backend, iCHARM's Data API, ...) can consume the output.
+Runs headless (no Jupyter, no prompts) so it can be driven by a scheduler —
+this folder includes a worked Kubernetes CronJob example, but any scheduler
+that can run a Python process works.
+
+## Quick start
+
+```bash
+# 1. Install (from a clone, or straight from GitHub -- see "Install" below)
+pip install ./post_processing
+
+# 2. One-time: get the CorrDiff output grid (same for everyone, not tied to
+#    any deployment -- see "Prerequisites" below)
+corrdiff-fetch-grid --grid-dir ./post_processing
+
+# 3. Run it, pointed at a username whose NIM has a public Ingress
+CORRDIFF_NIM_USERNAME=alice \
+CORRDIFF_OUTPUT_DIR=./out CORRDIFF_GRID_DIR=./post_processing \
+  corrdiff-run-daily
+```
+
+That's the whole loop — no GPU, no Kubernetes access, no kubeconfig needed on
+your side. `./out` ends up with two Zarr stores (see "Using the output"
+below). Everything after this point is reference detail: what each piece
+does, every configuration knob, and the Kubernetes-specific paths (running
+your own NIM, scheduling as a CronJob) if you need those too.
+
+## Install
+
+This folder is a self-contained, installable package (see `pyproject.toml`) —
+you don't need the rest of this repo, or even a local clone, to use it.
+
+```bash
+# Straight from GitHub, no clone at all -- the normal way to pull this into
+# your own project:
+pip install "git+https://github.com/xlaurahu/CorrDiffSCIL.git#subdirectory=post_processing"
+
+# From a local clone:
+pip install ./post_processing        # from the repo root
+pip install .                        # from inside this folder
+pip install -e .                     # editable -- picks up `git pull`s live, for development
+
+# Or run ad hoc without installing, e.g.:
+uv run --project post_processing corrdiff-run-daily
+```
+
+Installing adds these commands: `corrdiff-predict`, `corrdiff-to-zarr`,
+`corrdiff-to-latlon-zarr`, `corrdiff-fetch-grid`, `corrdiff-forecast`,
+`corrdiff-run-daily`, `corrdiff-plots`, `corrdiff-flood-regions`. Each also
+works as `python <script>.py` without installing, provided the dependencies
+in `pyproject.toml` are available.
+
+**What to run next:** `corrdiff-fetch-grid` (once — see "Prerequisites"),
+then `corrdiff-forecast` or `corrdiff-run-daily` (see "Running it"). Or just
+follow "Quick start" at the top of this file for the full sequence.
+
+**Updating:** for the GitHub-URL install, plain `pip install --upgrade` can
+silently no-op if the package version hasn't changed (check what you have
+with `pip show corrdiff-post-processing`). To force a real re-pull:
+
+```bash
+pip install --upgrade --force-reinstall --no-deps \
+  "git+https://github.com/xlaurahu/CorrDiffSCIL.git#subdirectory=post_processing"
+```
+
+(`--no-deps` just skips redundantly re-resolving the heavy deps like `torch`
+unless those changed too.) You can also pin a specific version by appending
+`@<tag>` before the `#subdirectory=...` part, once tagged releases of the
+code itself exist (separate from the `grid-v1` data release below).
+
+## Prerequisites
+
+1. **A username whose CorrDiff NIM is running and has a public Ingress.**
+   This package reaches a NIM through its owner's public HTTPS endpoint —
+   `https://corrdiff-<username>.nrp-nautilus.io` — by default. That's the
+   whole integration surface: give `corrdiff_predict.nim_base_url()` (or
+   `--username` / `CORRDIFF_NIM_USERNAME`) a username, and it works from
+   anywhere — your own forecasting system, a laptop, a CI job — with no
+   Kubernetes access, kubeconfig, or GPU required on your side.
+
+   **No built-in authentication** — anyone with the URL can submit inference
+   requests against that GPU. Only use a username whose NIM you trust, and
+   only stand up your own Ingress if you're prepared to share the URL that
+   broadly. The repo root's `corrdiff-nim-deployment.yaml` /
+   `corrdiff-nim-ingress.yaml` are a starting point for standing one up.
+
+   If you need to reach a NIM some other way (it's not behind that Ingress
+   pattern at all), `--nim-host` / `CORRDIFF_NIM_HOST` is an escape hatch:
+   any `host:port` or full `http(s)://...` URL, overriding username entirely.
+   Most users won't need this.
+2. **The CorrDiff output grid**: `corrdiff_output_lat.npy` /
+   `corrdiff_output_lon.npy` (~15 MB each, the native curvilinear grid). These
+   are fixed by the model itself (`earth2-corrdiff-us-gefs-hrrr:1.0.0`), not
+   specific to any deployment, so they're published once as a
+   [GitHub Release](https://github.com/xlaurahu/CorrDiffSCIL/releases/tag/grid-v1)
+   rather than being cluster-only. Get them with:
+
+   ```bash
+   corrdiff-fetch-grid --grid-dir ./post_processing   # defaults to the current folder
+   ```
+
+   Plain HTTPS, no auth, no git, no Kubernetes. Re-run it (with `--force`) to
+   pick up a newer grid release later (`--release <tag>` to pin a specific
+   one). Not installed the package? A direct download works too:
+   `curl -LO https://github.com/xlaurahu/CorrDiffSCIL/releases/download/grid-v1/corrdiff_output_lat.npy`
+   (and the same for `corrdiff_output_lon.npy`).
 
 ## Data flow
 
@@ -15,171 +118,177 @@ copied here; the pipeline has been run successfully end-to-end from this repo
 GEFS (NOAA, public S3)
         │
         ▼
-corrdiff-nim-laurahu (NIM, GPU, in-cluster only)  ◄── corrdiff_predict.py calls /v1/infer
+https://corrdiff-<username>.nrp-nautilus.io  ◄── corrdiff_predict.py calls /v1/infer
+(someone's NIM, GPU, behind their public Ingress)
         │
         ▼
-raw .npy files (per hour/variable/sample/stat), ephemeral scratch dir
+raw .npy files (per hour/variable/sample/stat), scratch dir
         │
-        ├──► corrdiff_to_zarr.py       ──► corrdiff_<date>_map.zarr       (curvilinear, globe view)
-        └──► corrdiff_to_icharm_zarr.py ──► corrdiff_tp_<date>_map.zarr   (regridded 1-D, timeseries/regional API)
+        ├──► corrdiff_to_zarr.py        ──► corrdiff_<date>_map.zarr      (curvilinear, globe-style view)
+        └──► corrdiff_to_latlon_zarr.py ──► corrdiff_tp_<date>_map.zarr   (regridded 1-D, timeseries/regional queries)
                         │
                         ▼
-        corrdiff-output PVC (/output/corrdiff/, in-cluster)
-                        │
-                        ▼ kubectl cp (manual — see "Getting output out" below)
-                        │
-        backend/datasets/*.zarr  (this repo, docker-compose host)
+                 wherever you point --out / $CORRDIFF_OUTPUT_DIR
                         │
                         ▼
-        metadata.csv row (frontend/src/lib/db/metadata.csv) — one per store
-                        │
-                        ▼ pnpm run db:push && pnpm run db:seed  (NOT YET RUN)
-                        │
-        iCHARM data-api / frontend can serve it
+        any Zarr consumer: xarray, a notebook, your own backend,
+        iCHARM's Data API, ... (see "Using the output" below)
 ```
 
 ## Components
 
-1. **`corrdiff_predict.py`** — calls the NIM (`corrdiff-nim-service-{username}:8000/v1/infer`,
-   ClusterIP, in-cluster only). Fetches GEFS input via `earth2studio`,
-   sends the inference request, saves raw output as `.npy` files:
-   `<output_root>/<YYYY-MM-DD>/<date>_<var>_H<HHH>_{sample<i>|ensemble_<stat>}.npy`.
+1. **`corrdiff_predict.py`** — calls the NIM (by default,
+   `https://corrdiff-{username}.nrp-nautilus.io/v1/infer`). Fetches GEFS input
+   via `earth2studio`, sends the inference request, saves raw output as
+   `.npy` files: `<output_root>/<YYYY-MM-DD>/<date>_<var>_H<HHH>_{sample<i>|ensemble_<stat>}.npy`.
    Built to run headless (`run_prediction()` takes plain args, no prompts) —
-   doesn't need Jupyter, just cluster network access.
+   doesn't need Jupyter, just internet access to the NIM's public Ingress.
 2. **`corrdiff_to_zarr.py`** — packs the `.npy` files into a curvilinear-grid
-   Zarr (`(time, stat, y, x)`, 2-D lat/lon coords). Matches what
-   `dataset_local.py`'s `_open_curvilinear_zarr` reads for the globe
-   renderer.
-3. **`corrdiff_to_icharm_zarr.py`** — regrids the same `.npy` files onto a
-   regular 1-D lat/lon mesh (nearest-neighbor, 0.05°) because iCHARM's
-   timeseries/regional-average query path only accepts 1-D lat/lon, not
-   curvilinear. `tp` gets scaled ×3 here (raw value is a 1-hour accumulation;
-   this estimates the 3-hour total). `corrdiff_to_zarr.py` does **not** apply
-   this scaling — the two stores' `tp` units are not directly comparable.
-4. **`run_daily.py`** — unattended driver: calls `run_prediction()` for
+   Zarr (`(time, stat, y, x)`, 2-D lat/lon coords). Good for globe-style
+   renderers that can handle a curvilinear grid directly.
+3. **`corrdiff_to_latlon_zarr.py`** — regrids the same `.npy` files onto a
+   regular 1-D lat/lon mesh (nearest-neighbor, 0.05° by default) for
+   consumers whose query path only accepts 1-D lat/lon (e.g. simple
+   timeseries/regional-average lookups). `tp` gets scaled ×3 here (raw value
+   is a 1-hour accumulation; this estimates the 3-hour total).
+   `corrdiff_to_zarr.py` does **not** apply this scaling — the two stores'
+   `tp` units are not directly comparable.
+4. **`corrdiff_fetch_grid.py`** — one-time (or re-run-to-update) download of
+   the grid files above from the GitHub Release into `--grid-dir`.
+5. **`run_daily.py`** — unattended driver: calls `run_prediction()` for
    "yesterday" (`CORRDIFF_DATE_OFFSET_DAYS`, GEFS publication lag), runs both
    conversions, writes to `$CORRDIFF_OUTPUT_DIR`. Fully env-var configured
-   (see its docstring), exits non-zero on failure. This is what both the
-   CronJob and the manual debug-pod runs actually execute.
-5. **`corrdiff_plots.py`** / **`flood_region_detection.py`** — post-analysis
+   (see its docstring), exits non-zero on failure. This is what the CronJob
+   example (and any manual debug-pod run) actually executes.
+6. **`corrdiff_forecast.py`** — the ad hoc counterpart to `run_daily.py`: same
+   predict-then-convert pipeline, but CLI flags instead of env vars, and an
+   explicit `--date` instead of "yesterday". For a person at a terminal who
+   wants one specific forecast right now — see "Running it" below.
+   `--keep-raw` skips the scratch-dir cleanup, for feeding into
+   `corrdiff-plots`/`corrdiff-flood-regions` afterward. `run_forecast()` is
+   also directly importable, returning the written zarr paths.
+7. **`corrdiff_plots.py`** / **`flood_region_detection.py`** — post-analysis
    (CONUS/region PNG rendering, automatic extreme-precip region detection).
-   Read the *raw* `.npy` files, not the Zarr output — and `run_daily.py`
-   deletes those after conversion. Not wired into the automated path; useful
-   standalone if you keep the scratch dir around.
+   Read the *raw* `.npy` files, not the Zarr output — use `corrdiff-forecast
+   --keep-raw` (or `corrdiff-predict` directly) to keep those around, since
+   `run_daily.py`/plain `corrdiff-forecast` delete them after conversion.
 
-Both zarr scripts need `corrdiff_output_lat.npy` / `corrdiff_output_lon.npy`
-(~15 MB each, the native curvilinear grid) in `--grid-dir`. **Gitignored** —
-they live on the `corrdiff-output` PVC at `/output/corrdiff-grid/` (copied
-there once via a throwaway pod, not through git).
+## Configuration
 
-## Cluster resources (all in `sdsu-shen-climate-lab`)
+`run_daily.py` is configured entirely via environment variables (scheduler-
+friendly — nothing to template into a manifest):
 
-| Resource | Name | Purpose |
+| Variable | Default | Meaning |
 |---|---|---|
-| PVC | `corrdiff-output` (20Gi, RWO, `rook-ceph-block-tide`) | Dedicated output volume — deliberately *not* the shared `fourcastnet-training-data` PVC, which has an inconsistent root/gridftp-owned permission model not worth fighting for a single-purpose job. Holds `/output/corrdiff/` (finished zarr stores) and `/output/corrdiff-grid/` (grid files). |
-| ConfigMap | `corrdiff-scripts` | The 4 driver scripts (`corrdiff_predict.py`, `corrdiff_to_zarr.py`, `corrdiff_to_icharm_zarr.py`, `run_daily.py`), mounted at `/app/corrdiff`. Recreate it (`kubectl delete configmap corrdiff-scripts -n sdsu-shen-climate-lab` then the `kubectl create configmap` command in `cronjob.yaml`'s header) whenever these files change. |
-| CronJob | `corrdiff-daily` | Applied, schedule `0 0 * * *`, **not suspended** — but see "Known broken" below, it will fail when it fires until that's fixed. |
+| `CORRDIFF_NIM_USERNAME` | *(required unless `CORRDIFF_NIM_HOST` is set)* | NIM owner's username, e.g. `alice` — reaches their public Ingress (`https://corrdiff-<username>.nrp-nautilus.io`). No built-in auth on that endpoint; only use one you trust. |
+| `CORRDIFF_NIM_HOST` | unset | Explicit NIM host/URL, overriding `CORRDIFF_NIM_USERNAME` entirely. Escape hatch for a NIM reached some other way; most users won't need this. |
+| `CORRDIFF_OUTPUT_DIR` | `./corrdiff_output` | Where finished zarr stores land. |
+| `CORRDIFF_GRID_DIR` | `/output/corrdiff-grid` | Folder with `corrdiff_output_lat/lon.npy`. |
+| `CORRDIFF_PRED_ROOT` | `/tmp/corrdiff_predictions` | Scratch folder for raw `.npy` prediction output (deleted after conversion). |
+| `CORRDIFF_HOURS` | `3,6,9,12,15,18,21,24` | Comma-separated forecast hours. |
+| `CORRDIFF_VARIABLES` | `tp,t2m` | Comma-separated variables to predict/save. |
+| `CORRDIFF_SAMPLES` | `5` | Ensemble member count. |
+| `CORRDIFF_STEPS` | `10` | Diffusion step count. |
+| `CORRDIFF_DATE_OFFSET_DAYS` | `1` | Days to subtract from "today" (UTC) for the GEFS initial-condition date, to allow for GEFS publication lag. |
 
-## Proven working (2026-07-27/28, manual debug-pod run)
+The individual scripts (`corrdiff_predict.py`, `corrdiff_to_zarr.py`,
+`corrdiff_to_latlon_zarr.py`) also work standalone with CLI args — run any of
+them with `--help` (or `corrdiff-predict --help` etc. once installed).
 
-Ran the full predict → NIM inference → convert pipeline successfully by hand:
-a plain debug pod (`sleep` command, same image/mounts as the CronJob),
-`kubectl exec`'d into directly, running `run_daily.py` with a minimal config
-(`CORRDIFF_HOURS=3 CORRDIFF_VARIABLES=tp CORRDIFF_SAMPLES=2 CORRDIFF_STEPS=8`).
-Confirmed: NIM call succeeded (`Received 2 sample(s)`), both zarr stores
-written correctly. Output pulled to this repo and metadata rows added:
+## Running it
 
-- `backend/datasets/corrdiff_2026-07-27_map.zarr` (81M, curvilinear) →
-  `metadata.csv` row `corrdiff_tp_20260727_map`
-- `backend/datasets/corrdiff_tp_2026-07-27_map.zarr` (2.9M, regridded) →
-  `metadata.csv` row `corrdiff_tp_20260727_ts`
+From anywhere — your own forecasting system, a laptop, a coworker's machine,
+a CI job — with no GPU, kubeconfig, or cluster access required. Two ways,
+depending on what you're doing:
 
-**Not yet done:** `pnpm run db:push && pnpm run db:seed` (needs the
-docker-compose Postgres running, which isn't available right now) — so these
-two rows aren't in the live database yet, and won't show up in the app until
-that's run.
-
-## Known broken: the CronJob will fail as scheduled
-
-Root cause, found via the debug-pod session: **the container image
-(`henrylisdsu/nvidia-cuda-12.4:v2.5`) does not include `earth2studio`.** It's
-only `pip install --user`'d into `/home/jovyan/.local/` on the Jupyter pod's
-own PVC (`jupyter-volume-laurahu`) — nothing else mounts that. Every earlier
-CronJob/Job attempt crash-looped near-instantly on
-`corrdiff_predict.setup_data_sources()`'s `from earth2studio.data import ...`
-— consistent with a fast import error, not a flaky/environmental failure.
-
-Confirmed fix: `pip install --user "earth2studio[data]" aiobotocore` inside a
-pod using the same image works (installs `earth2studio-0.9.0`, `torch-2.13.0`,
-~90s). This is what unblocked the successful manual run above.
-
-**`cronjob.yaml` does not have this fix yet** — it'll still fail when it next
-fires (next `00:00 UTC`). Options, not yet decided:
-- Add an `initContainer` (or wrap the main command) that `pip install`s
-  `earth2studio[data]` + `aiobotocore` before running `run_daily.py`. Simple,
-  but adds ~90s + a real network dependency to every run.
-- Build a custom image with `earth2studio` baked in, point the CronJob at
-  that instead. Faster/more reliable per-run, more upfront work (Dockerfile,
-  somewhere to push it — this namespace's images so far come from Docker Hub
-  (`henrylisdsu/...`) or `nvcr.io`/`gitlab-registry.nrp-nautilus.io`, no
-  existing internal registry pattern to reuse).
-
-Also worth fixing while touching `cronjob.yaml`: the resource
-`limits:requests` ratio was already tightened once (cluster admission policy
-caps it at 1.2×) — re-check after any other spec changes, `kubectl apply`
-warns if it's violated but doesn't hard-block.
-
-## Getting output out of the cluster: `kubectl cp`, not Globus
-
-Globus was tried first — both sides got real Globus Connect Personal
-endpoints registered and working (in-cluster `globus-connect-laurahu`
-deployment since torn down; Mac-side collection
-`9dcd9649-8a17-11f1-8374-02ce27bde401` still installed locally, harmless to
-leave). Hit a hard wall: **transfers between two Globus Connect Personal
-collections require a paid Globus subscription** on at least one side — true
-of both endpoints here, since the pre-existing
-`globus-connect-climate-lab-service` is also just GCP, not a full Globus
-Connect Server, despite living in a pod. Free tier doesn't allow it.
-
-So: plain `kubectl cp`, proven working twice now (grid files, then the actual
-forecast output):
+**One specific forecast, right now** — `corrdiff-forecast`, plain CLI flags:
 
 ```bash
-kubectl cp sdsu-shen-climate-lab/<pod>:/output/corrdiff/corrdiff_<date>_map.zarr \
-  backend/datasets/corrdiff_<date>_map.zarr
-kubectl cp sdsu-shen-climate-lab/<pod>:/output/corrdiff/corrdiff_tp_<date>_map.zarr \
-  backend/datasets/corrdiff_tp_<date>_map.zarr
+corrdiff-forecast --username alice --date 2026-08-16 \
+  --output-dir ./out --grid-dir ./post_processing
 ```
 
-Since Job-controller pods (`OnFailure`/backoff) get cleaned up by this
-cluster very fast after finishing — faster than default Kubernetes behavior,
-consistent with other custom admission policies here — the practical pattern
-so far has been a **throwaway pod that just mounts the PVC** (`sleep`
-command, no Job wrapper), `kubectl cp` from that, then delete it. See
-`corrdiff-output-shell` pattern used above (not currently running — was
-deleted after use, recreate from the same spec if needed).
+**Unattended / scheduled, "yesterday's" forecast** — `corrdiff-run-daily`,
+env-var configured (see "Configuration" above):
 
-## Debugging tip: don't debug through the CronJob/Job
+```bash
+CORRDIFF_NIM_USERNAME=alice \
+CORRDIFF_OUTPUT_DIR=./out CORRDIFF_GRID_DIR=./post_processing \
+  corrdiff-run-daily
+```
 
-Job-managed pods get deleted within seconds of failing on this cluster —
-`kubectl logs --previous` routinely lost the race even with `kubectl wait`
-and background log-followers. A plain debug pod (`command: ["sleep", "N"]`,
-same image/mounts/env as the CronJob, `kubectl exec` in directly) sidesteps
-this entirely: nothing auto-deletes, output is immediate, and you can install
-missing packages / poke around interactively. This is how the `earth2studio`
-root cause above was actually found.
+Both need `alice`'s Ingress to actually be deployed and pointed at a healthy
+NIM — see `corrdiff-nim-ingress.yaml` in the repo root. Neither needs
+Kubernetes to *run* — that's only relevant if you're deploying your own NIM,
+or scheduling `corrdiff-run-daily` as a CronJob (below), not for calling
+either command directly.
+
+**On Kubernetes, as a scheduled CronJob:** `cronjob.yaml` is a full worked
+example (ConfigMap-mounted scripts, no custom image needed — dependencies
+install into an `emptyDir` via an `initContainer`). Every `<placeholder>` in
+it needs filling in for your namespace/username/PVC before applying; see the
+comments at the top of the file for the exact steps. Note that even a CronJob
+running in the *same* namespace as the NIM reaches it via the public Ingress
+by default (an unnecessary round-trip out to the internet and back) — if that
+matters, set `CORRDIFF_NIM_HOST` to the in-cluster Service URL directly
+(`http://corrdiff-nim-service-<username>:8000`) instead of
+`CORRDIFF_NIM_USERNAME`, to use the free, fast ClusterIP path.
+
+## Getting output out of a Kubernetes cluster
+
+If you don't have (or don't want) a shared filesystem/PVC mount reachable
+from outside the cluster, plain `kubectl cp` works:
+
+```bash
+kubectl cp <namespace>/<pod>:/output/corrdiff/corrdiff_<date>_map.zarr \
+  ./corrdiff_<date>_map.zarr
+```
+
+A **throwaway pod that just mounts the PVC** (`sleep` command, no Job
+wrapper) is a convenient way to get a `kubectl cp` source without waiting on
+a real run — `kubectl cp` from it, then delete it. (We also tried Globus for
+this; free-tier Globus Connect Personal can't transfer between two personal
+endpoints without a paid subscription on at least one side, so it's not
+included here — plain `kubectl cp` is simpler for a single PVC anyway.)
+
+**Debugging tip:** don't debug through the CronJob/Job itself. Job-managed
+pods on many clusters get deleted within seconds of failing, which can lose
+the race with `kubectl logs --previous`. A plain debug pod
+(`command: ["sleep", "N"]`, same image/mounts/env as the CronJob, `kubectl
+exec` in directly) sidesteps this: nothing auto-deletes, output is
+immediate, and you can install missing packages / poke around interactively.
+
+## Using the output
+
+The two Zarr stores are plain, self-describing Zarr — read them with
+`xarray.open_zarr(...)` from anywhere. Two integration paths:
+
+- **Generic**: just read the store with xarray/zarr in your own code. No
+  other setup needed.
+- **iCHARM**: iCHARM's Data API needs zarr v2 + a regular 1-D lat/lon grid,
+  which is exactly what `corrdiff_to_latlon_zarr.py` produces. Drop the
+  resulting `.zarr` into iCHARM's `backend/datasets/`, add a row to
+  `frontend/src/lib/db/metadata.csv`, then `pnpm run db:push && pnpm run
+  db:seed` to register it.
+
+## Notes on the CronJob example's design
+
+- **No custom-built image.** The `initContainer` approach (`pip install
+  --target=/deps ...` into an `emptyDir`, then `PYTHONPATH` picks it up in
+  the main container) avoids needing a Dockerfile or somewhere to push one —
+  handy if your cluster doesn't have an established internal registry
+  pattern. It costs some install time on every run; if that matters, bake a
+  custom image with the dependencies (see `pyproject.toml`) pre-installed
+  and drop the `initContainer` instead.
+- **No GPU on this pod.** Inference happens in the NIM pod; this only calls
+  it over HTTP and does CPU-side pre/post-processing.
+- **Resource limits:requests ratio.** Some clusters cap this via admission
+  policy (e.g. 1.2×) — if `kubectl apply` warns or your job gets rejected,
+  check yours before setting requests/limits far apart.
 
 ## Still open
 
-- **Bake the `earth2studio` fix into `cronjob.yaml`** (see "Known broken").
-  Until this happens, don't rely on the schedule firing successfully.
-- **`pnpm run db:push && pnpm run db:seed`** — needed before the two new rows
-  show up in the app. Blocked on docker-compose being runnable again.
-- **`sync_corrdiff.py`** — script to automate the `kubectl cp` +
-  `metadata.csv`-append steps done manually above, for future runs. Not
-  written yet.
-- **Image size for `corrdiff-daily-manual-*` runs**: default `run_daily.py`
-  config (8 hours × 2 vars × 5 samples × 10 steps) takes long enough that it
-  was killed mid-run during testing in favor of a 1-hour/1-var/2-sample/8-step
-  smoke test. Fine for proving the pipeline; a real production run should use
-  the full config (or something between the two) once the CronJob is fixed.
+- **A `sync` script** to automate "pull the finished zarr out of the
+  cluster + register it with a downstream consumer" — today that's a manual
+  `kubectl cp` (+, for iCHARM, a manual `metadata.csv` row and `pnpm`
+  commands). Not written yet.

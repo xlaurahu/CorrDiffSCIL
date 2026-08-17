@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .DS_Store
+post_processing/corrdiff_output_lat.npy
+post_processing/corrdiff_output_lon.npy

@@ -1,0 +1,59 @@
+[project]
+name = "corrdiff-post-processing"
+version = "0.3.0"
+description = "Standalone CorrDiff predict -> NIM -> Zarr pipeline: pull GEFS inputs, call a running CorrDiff NIM, and write curvilinear or regridded 1-D lat/lon Zarr stores. No iCHARM (or any particular downstream consumer) required."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "requests>=2.31",
+    "numpy>=1.26",
+    "torch>=2.2",
+    "earth2studio[data]",
+    "aiobotocore",
+    "xarray>=2024.1",
+    "zarr>=3",
+    "dask>=2024.1",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "cartopy>=0.22",
+    "pandas>=2.0",
+    "rioxarray>=0.15",
+]
+
+# This package is a flat folder of standalone scripts (no src/ nesting), so it
+# can be mounted verbatim into a container (see cronjob.yaml / README.md) and
+# imported with plain `import corrdiff_predict` — installing it just adds these
+# console commands on top, it doesn't change how the modules import each other.
+[tool.setuptools]
+py-modules = [
+    "corrdiff_predict",
+    "corrdiff_to_zarr",
+    "corrdiff_to_latlon_zarr",
+    "corrdiff_fetch_grid",
+    "corrdiff_forecast",
+    "run_daily",
+    "corrdiff_plots",
+    "flood_region_detection",
+]
+
+[project.scripts]
+corrdiff-predict = "corrdiff_predict:main"
+corrdiff-to-zarr = "corrdiff_to_zarr:main"
+corrdiff-to-latlon-zarr = "corrdiff_to_latlon_zarr:main"
+corrdiff-fetch-grid = "corrdiff_fetch_grid:main"
+corrdiff-forecast = "corrdiff_forecast:main"
+corrdiff-run-daily = "run_daily:main"
+corrdiff-plots = "corrdiff_plots:main"
+corrdiff-flood-regions = "flood_region_detection:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

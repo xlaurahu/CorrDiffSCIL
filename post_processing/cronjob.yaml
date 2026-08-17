@@ -1,33 +1,51 @@
-# Runs corrdiff/run_daily.py on a schedule: calls the corrdiff-nim-laurahu NIM,
-# converts the result to both iCHARM zarr formats, and writes them to the
-# dedicated corrdiff-output PVC (20Gi, RWO) — pulled to the docker-compose host
-# via `kubectl cp` (see README.md; Globus was tried first but GCP-to-GCP
-# transfers require a paid subscription, so this pipeline doesn't use Globus).
-# No one needs to open JupyterHub manually once this is running.
+# Runs post_processing/run_daily.py on a schedule: calls a CorrDiff NIM,
+# converts the result to both zarr formats (curvilinear + regridded 1-D
+# lat/lon), and writes them to a PVC — from which you pull output however you
+# like (`kubectl cp`, a sync job, mount it from something else, etc.). This is
+# a worked EXAMPLE for one Kubernetes cluster; adapt names/resources to yours.
 #
-# Prerequisite 1: create the ConfigMap holding the driver scripts from the repo:
+# Every `<angle-bracket>` placeholder below must be filled in before applying.
 #
-#   kubectl create configmap corrdiff-scripts -n sdsu-shen-climate-lab \
-#     --from-file=backend/icharm/dataset_processing/corrdiff/corrdiff_predict.py \
-#     --from-file=backend/icharm/dataset_processing/corrdiff/corrdiff_to_zarr.py \
-#     --from-file=backend/icharm/dataset_processing/corrdiff/corrdiff_to_icharm_zarr.py \
-#     --from-file=backend/icharm/dataset_processing/corrdiff/run_daily.py
+# Prerequisite 1: a CorrDiff NIM already running, with its public Ingress
+# deployed (see the repo root's corrdiff-nim-deployment.yaml /
+# corrdiff-nim-ingress.yaml for a starting point). CORRDIFF_NIM_USERNAME below
+# reaches it at https://corrdiff-<your-username>.nrp-nautilus.io by default --
+# note that even though this Job runs in the same namespace as the NIM, going
+# through CORRDIFF_NIM_USERNAME still round-trips out through the public
+# internet. If that matters, swap CORRDIFF_NIM_USERNAME below for
+# CORRDIFF_NIM_HOST="http://corrdiff-nim-service-<your-username>:8000" to use
+# the free, fast in-cluster path instead.
+#
+# Prerequisite 2: create the ConfigMap holding this folder's driver scripts +
+# packaging metadata (just the code -- ConfigMaps cap out around 1MB total,
+# well under the ~15MB-each grid .npy files, which is why those are fetched
+# separately below rather than included here):
+#
+#   kubectl create configmap corrdiff-scripts -n <your-namespace> \
+#     --from-file=post_processing/corrdiff_predict.py \
+#     --from-file=post_processing/corrdiff_to_zarr.py \
+#     --from-file=post_processing/corrdiff_to_latlon_zarr.py \
+#     --from-file=post_processing/corrdiff_fetch_grid.py \
+#     --from-file=post_processing/run_daily.py \
+#     --from-file=post_processing/pyproject.toml
 #
 # Re-run that command (it will fail if the ConfigMap already exists — delete
 # it first, or use `kubectl create ... --dry-run=client -o yaml | kubectl apply -f -`)
-# whenever these scripts change.
+# whenever these files change.
 #
-# Prerequisite 2: the two grid .npy files must exist on the corrdiff-output PVC
-# at /corrdiff-grid/ (gitignored, not in this ConfigMap — see README.md for how
-# they were copied there).
+# Prerequisite 3: the two grid .npy files (corrdiff_output_lat.npy /
+# corrdiff_output_lon.npy) must exist on the output PVC at /corrdiff-grid/.
+# They're published as a GitHub Release (not deployment-specific -- same grid
+# for everyone), so a throwaway pod with this folder's deps installed just
+# needs to run `corrdiff-fetch-grid --grid-dir /corrdiff-grid` once. No
+# kubectl cp, no cluster-internal source required.
 #
-# NOT YET APPLIED — review the schedule/resources/env below, then:
-#   kubectl apply -f backend/icharm/dataset_processing/corrdiff/cronjob.yaml
+# Then: kubectl apply -f post_processing/cronjob.yaml
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: corrdiff-daily
-  namespace: sdsu-shen-climate-lab
+  namespace: <your-namespace>
 spec:
   schedule: "0 0 * * *"  # 00:00 UTC daily
   concurrencyPolicy: Forbid
@@ -41,15 +59,32 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          # No GPU needed anywhere in this pod — inference happens in the NIM
+          # pod; this only calls it over HTTP and does CPU-side pre/post-
+          # processing, so a plain Python image is enough.
+          initContainers:
+            - name: install-deps
+              image: python:3.12-slim
+              command:
+                - pip
+                - install
+                - --target=/deps
+                - --extra-index-url=https://download.pytorch.org/whl/cpu
+                - /app/corrdiff
+              volumeMounts:
+                - name: corrdiff-scripts
+                  mountPath: /app/corrdiff
+                - name: deps
+                  mountPath: /deps
           containers:
             - name: corrdiff-daily
-              image: henrylisdsu/nvidia-cuda-12.4:v2.5  # same image as jupyter-deployment-laurahu (has earth2studio)
+              image: python:3.12-slim
               command: ["python", "/app/corrdiff/run_daily.py"]
               env:
                 - name: PYTHONPATH
-                  value: /app/corrdiff
+                  value: /app/corrdiff:/deps
                 - name: CORRDIFF_NIM_USERNAME
-                  value: laurahu
+                  value: "<your-username>"
                 - name: CORRDIFF_OUTPUT_DIR
                   value: /output/corrdiff
                 - name: CORRDIFF_GRID_DIR
@@ -65,14 +100,9 @@ spec:
                 - name: CORRDIFF_DATE_OFFSET_DAYS
                   value: "1"
               resources:
-                # No GPU requested — this only calls the NIM over HTTP and does
-                # CPU-side GEFS fetch/regridding. Add nvidia.com/gpu here (and
-                # a matching nodeAffinity, see corrdiff-nim-laurahu's deployment)
-                # if that assumption turns out to be wrong.
-                #
-                # limit:request ratio capped at 1.2 by this cluster's admission
-                # policy (container-must-meet-memory-and-cpu-ratio) — the
-                # original 2x limits (cpu 4, memory 16Gi) got rejected.
+                # Tune to your cluster. Some clusters cap the limits:requests
+                # ratio via admission policy (e.g. 1.2x) — check yours before
+                # setting these far apart.
                 requests:
                   cpu: "2"
                   memory: 8Gi
@@ -82,12 +112,16 @@ spec:
               volumeMounts:
                 - name: corrdiff-scripts
                   mountPath: /app/corrdiff
+                - name: deps
+                  mountPath: /deps
                 - name: corrdiff-output
                   mountPath: /output
           volumes:
             - name: corrdiff-scripts
               configMap:
                 name: corrdiff-scripts
+            - name: deps
+              emptyDir: {}
             - name: corrdiff-output
               persistentVolumeClaim:
-                claimName: corrdiff-output
+                claimName: <your-output-pvc>

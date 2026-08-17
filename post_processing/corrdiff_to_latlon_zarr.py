@@ -1,27 +1,33 @@
-"""Convert CorrDiff ensemble output into an iCHARM-ingestible Zarr.
+"""Regrid CorrDiff ensemble output onto a regular 1-D lat/lon Zarr store.
 
 Unlike ``corrdiff_to_zarr.py`` (which keeps the native 2-D curvilinear grid for
-the globe renderer), iCHARM's **Data API only accepts a regular 1-D lat/lon
-grid** (``database_queries.py`` raises "Only 1D lat/lon grids are supported")
-and reads **zarr v2** consolidated stores. So this script:
+a globe-style renderer), many downstream consumers — anything doing plain
+timeseries/regional-average queries, including iCHARM's Data API — only accept
+a **regular 1-D lat/lon grid**, and iCHARM specifically also requires **zarr
+v2** consolidated stores. So this script:
 
 1. reads the saved ``{date}_{var}_H{H}_{stat}.npy`` fields + the 2-D grid,
 2. **regrids** the 3 km Lambert field onto a regular 1-D lat/lon mesh
    (nearest-neighbour by default; linear optional),
 3. writes a **zarr v2** store with dims ``(time, lat, lon)`` — ``time`` = the
-   3-hourly forecast valid times — that drops into ``backend/datasets/`` and is
-   registered with one ``metadata.csv`` row.
+   3-hourly forecast valid times.
+
+The output is a self-contained Zarr store — point any consumer that reads
+regular-grid Zarr at it (xarray, iCHARM's Data API, your own script, etc.).
 
 For ``tp`` the value is the estimated 3-hour accumulation (``tp * 3``), so the
-globe animates 3-hourly precipitation. One stat per store (default the ensemble
+field animates 3-hourly precipitation. One stat per store (default the ensemble
 mean); run again with ``--stat`` for others.
 
-Usage (host, ephemeral deps):
+Usage (installed, see this folder's pyproject.toml):
+    corrdiff-to-latlon-zarr /path/to/predictions/2025-04-04 --date 2025-04-04 \\
+        --resolution 0.05 --out /path/to/output/corrdiff_tp_2025-04-04_map.zarr
+
+Usage (ephemeral deps, no install):
     uv run --with xarray --with "zarr>=3" --with numpy --with scipy --with dask \\
-        python -m icharm.dataset_processing.corrdiff.corrdiff_to_icharm_zarr \\
-            /path/to/OhioRiver/2025-04-04 --date 2025-04-04 \\
-            --resolution 0.05 \\
-            --out /path/to/iCharm/backend/datasets/corrdiff_tp_2025-04-04_map.zarr
+        python corrdiff_to_latlon_zarr.py \\
+            /path/to/predictions/2025-04-04 --date 2025-04-04 \\
+            --resolution 0.05 --out /path/to/output/corrdiff_tp_2025-04-04_map.zarr
 """
 
 from __future__ import annotations
@@ -106,7 +112,7 @@ def convert(
     method="nearest",
     scale_3h=None,
 ):
-    """Regrid a CorrDiff variable/stat to a 1-D lat/lon zarr v2 store for iCHARM."""
+    """Regrid a CorrDiff variable/stat to a 1-D lat/lon zarr v2 store."""
     import xarray as xr
 
     suffix = STAT_SUFFIX.get(stat, stat)
@@ -165,7 +171,7 @@ def main(argv=None):
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("pred_dir", help="Folder with the CorrDiff .npy outputs (the <YYYY-MM-DD> folder).")
     p.add_argument("--date", required=True, help="YYYY-MM-DD.")
-    p.add_argument("--out", required=True, help="Output .zarr path (put it in iCHARM's backend/datasets/).")
+    p.add_argument("--out", required=True, help="Output .zarr path.")
     p.add_argument("--grid-dir", default=str(DEFAULT_GRID_DIR),
                    help="Folder with corrdiff_output_lat/lon.npy.")
     p.add_argument("--var", default="tp")
