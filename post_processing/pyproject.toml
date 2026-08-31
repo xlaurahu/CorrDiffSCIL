@@ -1,9 +1,9 @@
 [project]
 name = "corrdiff-post-processing"
-version = "0.3.0"
+version = "0.4.0"
 description = "Standalone CorrDiff predict -> NIM -> Zarr pipeline: pull GEFS inputs, call a running CorrDiff NIM, and write curvilinear or regridded 1-D lat/lon Zarr stores. No iCHARM (or any particular downstream consumer) required."
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<3.14"
 dependencies = [
     "requests>=2.31",
     "numpy>=1.26",
@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 # This package is a flat folder of standalone scripts (no src/ nesting), so it
-# can be mounted verbatim into a container (see cronjob.yaml / README.md) and
+# can be mounted verbatim into a container if you want one (see README.md) and
 # imported with plain `import corrdiff_predict` — installing it just adds these
 # console commands on top, it doesn't change how the modules import each other.
 [tool.setuptools]

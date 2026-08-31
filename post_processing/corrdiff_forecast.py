@@ -2,11 +2,12 @@
 
 This is the interactive counterpart to ``run_daily.py``. ``run_daily.py`` is
 env-var configured and always targets "today minus N days" -- built for
-unattended/scheduled runs (a Kubernetes CronJob or any other scheduler).
-This script is for a person at a terminal who wants one specific date, right
-now, with plain CLI flags. Neither this nor ``run_daily.py`` needs Kubernetes,
-a CronJob, or any scheduler to run -- both are just Python processes; the
-CronJob is only one optional way to trigger ``run_daily.py`` on a timer.
+unattended/scheduled runs (a crontab entry is the normal way; a Kubernetes
+CronJob works too if you're already on one). This script is for a person at
+a terminal who wants one specific date, right now, with plain CLI flags.
+Neither this nor ``run_daily.py`` needs Kubernetes, cron, or any scheduler
+to run directly -- both are just Python processes; scheduling is only about
+triggering ``run_daily.py`` on a timer, which is optional.
 
 Talks to a NIM the same way as everything else in this package (see
 ``corrdiff_predict.nim_base_url()``): a username reaching that NIM owner's

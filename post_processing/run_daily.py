@@ -1,12 +1,11 @@
 """Unattended daily driver: NIM predict -> zarr output.
 
-Meant to run as a scheduled job (Kubernetes CronJob or any other scheduler)
-anywhere with internet access, with this folder's other ``corrdiff_*.py``
-files and the grid ``.npy`` files available on disk alongside it (mount this
-package as a volume, or ``pip install`` it — see README.md). No GPU, and no
-Kubernetes cluster access, needed here — inference happens in someone's NIM,
-reached over its public Ingress; this only calls it over HTTP and does
-CPU-side pre/post-processing.
+Meant to run as a scheduled job -- a plain crontab entry is the normal way
+(see README.md), though any scheduler works, Kubernetes CronJob included, if
+you happen to already be on one. Just needs internet access and this
+package ``pip install``ed. No GPU, and no Kubernetes cluster access, needed
+here -- inference happens in someone's NIM, reached over its public Ingress;
+this only calls it over HTTP and does CPU-side pre/post-processing.
 
 Writes two general-purpose zarr stores for one initial-condition date, each
 useful to a different kind of consumer:
