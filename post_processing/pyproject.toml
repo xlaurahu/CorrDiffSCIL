@@ -1,6 +1,6 @@
 [project]
 name = "corrdiff-post-processing"
-version = "0.4.1"
+version = "0.4.2"
 description = "Standalone CorrDiff predict -> NIM -> Zarr pipeline: pull GEFS inputs, call a running CorrDiff NIM, and write curvilinear or regridded 1-D lat/lon Zarr stores. No iCHARM (or any particular downstream consumer) required."
 readme = "README.md"
 requires-python = ">=3.10,<3.15"

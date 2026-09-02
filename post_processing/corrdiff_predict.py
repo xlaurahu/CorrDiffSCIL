@@ -196,6 +196,47 @@ def patch_aiobotocore_session_close() -> bool:
     return True
 
 
+def patch_windows_gefs_s3_keys() -> bool:
+    """Work around earth2studio building GEFS S3 keys with backslashes on Windows.
+
+    earth2studio's GEFS source builds S3 object keys with ``os.path.join``,
+    which uses ``\\`` on Windows -- producing a key like
+    ``noaa-gefs-pds\\gefs.20240926/00\\atmos\\...`` that doesn't exist in the
+    bucket, so every fetch 404s with ``FileNotFoundError``. This is a genuine
+    upstream bug (S3 keys are always ``/``-separated, regardless of OS), not
+    anything specific to this package.
+
+    Makes the module's own ``os`` reference use ``posixpath`` for path joining
+    while still delegating every other ``os.*`` attribute (``environ``,
+    ``getenv``, etc.) to the real module, so nothing else in earth2studio's
+    GEFS code is affected. No-op (and a no-op return of ``False``) on
+    Mac/Linux, where ``os.path.join`` already produces forward slashes.
+    Idempotent; safe to call more than once.
+    """
+    if os.name != "nt":
+        return False
+
+    try:
+        import earth2studio.data.gefs as _gefs_module
+    except Exception:
+        return False
+
+    if getattr(_gefs_module, "_e2s_windows_path_patched", False):
+        return True
+
+    import posixpath
+
+    class _PosixOSProxy:
+        path = posixpath
+
+        def __getattr__(self, name):
+            return getattr(os, name)
+
+    _gefs_module.os = _PosixOSProxy()
+    _gefs_module._e2s_windows_path_patched = True
+    return True
+
+
 def setup_data_sources(cache: bool = True, member: str = "gec00"):
     """Create the GEFS data sources used to build CorrDiff inputs.
 
@@ -204,9 +245,12 @@ def setup_data_sources(cache: bool = True, member: str = "gec00"):
     earth2studio stack installed. Returns ``(ds_gefs, ds_gefs_select)``.
 
     Also applies :func:`patch_aiobotocore_session_close` so the GEFS S3 fetches
-    don't crash on session teardown.
+    don't crash on session teardown, and (Windows only)
+    :func:`patch_windows_gefs_s3_keys` so those fetches don't 404 on a
+    backslash-corrupted S3 key.
     """
     patch_aiobotocore_session_close()
+    patch_windows_gefs_s3_keys()
 
     from earth2studio.data import GEFS_FX, GEFS_FX_721x1440
 
