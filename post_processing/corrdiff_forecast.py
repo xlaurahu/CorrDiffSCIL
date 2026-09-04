@@ -32,6 +32,7 @@ from datetime import datetime
 from pathlib import Path
 
 import corrdiff_predict as cd
+import corrdiff_plots as cp
 import corrdiff_to_latlon_zarr as c2l
 import corrdiff_to_zarr as c2z
 
@@ -53,6 +54,9 @@ def run_forecast(
     pred_root: str | Path = "/tmp/corrdiff_predictions",
     keep_raw: bool = False,
     skip_health_check: bool = False,
+    plot: bool = False,
+    plot_dir: str | Path | None = None,
+    region=None,
 ) -> dict[str, Path]:
     """Run predict + convert for one explicit initial-condition ``date``.
 
@@ -121,6 +125,21 @@ def run_forecast(
             var="tp", stat="mean",
         )
 
+    if plot:
+        _plot_dir = Path(plot_dir) if plot_dir else output_dir / "plots"
+        print(f"Generating plots in {_plot_dir} ...")
+        images = cp.plot_prediction(
+            pred_dir=pred_dir,
+            date_str=date_str,
+            variables=variables,
+            hours=hours,
+            out_dir=_plot_dir,
+            grid_dir=grid_dir,
+            region=region,
+        )
+        print(f"Wrote {len(images)} figure(s).")
+        written["plots"] = _plot_dir
+
     if keep_raw:
         print(f"Raw .npy files kept at {pred_dir} (for corrdiff-plots / corrdiff-flood-regions).")
     else:
@@ -150,11 +169,26 @@ def main(argv=None) -> int:
                              "-- needed if you also want to run corrdiff-plots / "
                              "corrdiff-flood-regions on this run's output.")
     parser.add_argument("--skip-health-check", action="store_true")
+    parser.add_argument("--plot", action="store_true",
+                        help="Generate ensemble-mean map figures after conversion.")
+    parser.add_argument("--plot-dir",
+                        help="Where to write PNGs (default: <output-dir>/plots).")
+    parser.add_argument("--region",
+                        help="Mask + zoom plots to a lat/lon box: "
+                             "lat_min,lat_max,lon_min,lon_max (e.g. 32,41,-97,-82).")
     args = parser.parse_args(argv)
 
     if not args.username and not args.nim_host:
         print("--username or --nim-host is required.", file=sys.stderr)
         return 1
+
+    region = None
+    if args.region:
+        parts = [float(x) for x in args.region.replace(",", " ").split()]
+        if len(parts) != 4:
+            print("--region needs 4 numbers: lat_min,lat_max,lon_min,lon_max", file=sys.stderr)
+            return 1
+        region = tuple(parts)
 
     try:
         run_forecast(
@@ -170,6 +204,9 @@ def main(argv=None) -> int:
             pred_root=args.pred_root,
             keep_raw=args.keep_raw,
             skip_health_check=args.skip_health_check,
+            plot=args.plot,
+            plot_dir=args.plot_dir,
+            region=region,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
