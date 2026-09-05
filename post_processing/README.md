@@ -74,6 +74,26 @@ for `@main` once this branch merges, or for a specific tag if tagged releases
 of the code itself start existing (separate from the `grid-v1` data release
 below).
 
+**Windows:** use a conda/Miniconda environment, not a plain venv (a plain
+venv on Windows has hit real install/PATH problems -- Microsoft Store
+Python hijacking the `python` command, `earth2studio`'s `pygrib`/`eccodes`
+deps having no Windows PyPI wheels). Create the environment **with a Python
+version pinned explicitly** -- `conda create -n corrdiff` with no `python=`
+makes an empty environment (no interpreter, no `pip`), which silently falls
+through to whatever other `python`/`pip` happens to be on PATH and installs
+there instead:
+
+```bash
+conda create -n corrdiff python=3.12
+conda activate corrdiff
+where python     # sanity check: should point inside .../envs/corrdiff/
+python -m pip install "git+https://github.com/xlaurahu/CorrDiffSCIL.git@add-post-processing#subdirectory=post_processing"
+```
+
+Using `python -m pip install ...` (rather than a bare `pip install ...`)
+guarantees the install goes into *this* env's `python`, not a stray one
+elsewhere on PATH.
+
 ## Prerequisites
 
 1. **A username whose CorrDiff NIM is running and has a public Ingress.**
