@@ -94,6 +94,17 @@ Using `python -m pip install ...` (rather than a bare `pip install ...`)
 guarantees the install goes into *this* env's `python`, not a stray one
 elsewhere on PATH.
 
+**macOS/Linux:** none of the above applies — conda is not needed. A plain
+venv works fine, since `pygrib`/`eccodes` publish real PyPI wheels for both
+platforms (it's specifically Windows that lacks them), and there's no
+Windows-style App Execution Alias hijacking `python`:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install "git+https://github.com/xlaurahu/CorrDiffSCIL.git@add-post-processing#subdirectory=post_processing"
+```
+
 ## Prerequisites
 
 1. **A username whose CorrDiff NIM is running and has a public Ingress.**
@@ -227,6 +238,15 @@ underlying Zarr data:
 corrdiff-forecast --username alice --date 2026-08-16 \
   --output-dir ./out --grid-dir ./post_processing \
   --plot --region 24,31,-98,-80
+```
+
+Or a single-hour run — e.g. just hour 3 of the August 30th initial condition,
+with plots:
+
+```bash
+corrdiff-forecast --username alice --date 2026-08-30 --hours 3 \
+  --output-dir ./out --grid-dir ./post_processing \
+  --plot
 ```
 
 :repeat_one: **Unattended / scheduled, "yesterday's" forecast** — `corrdiff-run-daily`,
