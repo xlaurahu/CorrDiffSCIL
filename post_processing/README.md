@@ -23,7 +23,7 @@ pip install ./post_processing
 corrdiff-fetch-grid --grid-dir ./post_processing
 
 # 3. Run it, pointed at a username whose NIM has a public Ingress
-CORRDIFF_NIM_USERNAME=alice \
+CORRDIFF_NIM_USERNAME=laurahu \
 CORRDIFF_OUTPUT_DIR=./out CORRDIFF_GRID_DIR=./post_processing \
   corrdiff-run-daily
 ```
@@ -223,7 +223,7 @@ depending on what you're doing:
 :new: **One specific forecast, right now** — `corrdiff-forecast`, plain CLI flags:
 
 ```bash
-corrdiff-forecast --username alice --date 2026-08-16 \
+corrdiff-forecast --username laurahu --date 2026-08-16 \
   --output-dir ./out --grid-dir ./post_processing
 ```
 
@@ -235,7 +235,7 @@ understands) — `--region` only changes the rendered images, not the
 underlying Zarr data:
 
 ```bash
-corrdiff-forecast --username alice --date 2026-08-16 \
+corrdiff-forecast --username laurahu --date 2026-08-16 \
   --output-dir ./out --grid-dir ./post_processing \
   --plot --region 24,31,-98,-80
 ```
@@ -244,7 +244,7 @@ Or a single-hour run — e.g. just hour 3 of the August 30th initial condition,
 with plots:
 
 ```bash
-corrdiff-forecast --username alice --date 2026-08-30 --hours 3 \
+corrdiff-forecast --username laurahu --date 2026-08-30 --hours 3 \
   --output-dir ./out --grid-dir ./post_processing \
   --plot
 ```
@@ -253,12 +253,12 @@ corrdiff-forecast --username alice --date 2026-08-30 --hours 3 \
 env-var configured (see "Configuration" above):
 
 ```bash
-CORRDIFF_NIM_USERNAME=alice \
+CORRDIFF_NIM_USERNAME=laurahu \
 CORRDIFF_OUTPUT_DIR=./out CORRDIFF_GRID_DIR=./post_processing \
   corrdiff-run-daily
 ```
 
-Both need `alice`'s Ingress to actually be deployed and pointed at a healthy
+Both need `laurahu`'s Ingress to actually be deployed and pointed at a healthy
 NIM — see `corrdiff-nim-ingress.yaml` in the repo root. Neither needs
 Kubernetes for anything — that's only relevant if you're deploying your own
 NIM, which is a separate concern from running this package.
@@ -271,7 +271,7 @@ machine stays on and has network access to the NIM's public Ingress:
 
 ```bash
 # crontab -e
-0 0 * * * CORRDIFF_NIM_USERNAME=alice \
+0 0 * * * CORRDIFF_NIM_USERNAME=laurahu \
   CORRDIFF_OUTPUT_DIR=/home/you/corrdiff_output \
   CORRDIFF_GRID_DIR=/home/you/corrdiff_grid \
   /path/to/venv/bin/corrdiff-run-daily >> /var/log/corrdiff.log 2>&1
@@ -298,7 +298,7 @@ friendly — nothing to template into a manifest):
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `CORRDIFF_NIM_USERNAME` | *(required unless `CORRDIFF_NIM_HOST` is set)* | NIM owner's username, e.g. `alice` — reaches their public Ingress (`https://corrdiff-<username>.nrp-nautilus.io`). No built-in auth on that endpoint; only use one you trust. |
+| `CORRDIFF_NIM_USERNAME` | *(required unless `CORRDIFF_NIM_HOST` is set)* | NIM owner's username, e.g. `laurahu` — reaches their public Ingress (`https://corrdiff-<username>.nrp-nautilus.io`). No built-in auth on that endpoint; only use one you trust. |
 | `CORRDIFF_NIM_HOST` | unset | Explicit NIM host/URL, overriding `CORRDIFF_NIM_USERNAME` entirely. Escape hatch for a NIM reached some other way; most users won't need this. |
 | `CORRDIFF_OUTPUT_DIR` | `./corrdiff_output` | Where finished zarr stores land. |
 | `CORRDIFF_GRID_DIR` | `/output/corrdiff-grid` | Folder with `corrdiff_output_lat/lon.npy`. |
