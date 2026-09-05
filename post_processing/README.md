@@ -160,17 +160,28 @@ raw .npy files (per hour/variable/sample/stat), scratch dir
    (see its docstring), exits non-zero on failure. This is what the crontab
    example below actually executes.
 
-6. **`corrdiff_forecast.py`** -for a person at a terminal who
+6. **`corrdiff_forecast.py`** — for a person at a terminal who
    wants one specific forecast right now — see "Running it" below.
-   `--keep-raw` skips the scratch-dir cleanup, for feeding into
-   `corrdiff-plots`/`corrdiff-flood-regions` afterward. `run_forecast()` is
-   also directly importable, returning the written zarr paths.
+   `--plot` renders ensemble-mean map PNGs right after conversion (runs
+   before the raw-file cleanup, so it works with or without `--keep-raw`);
+   `--plot-dir` picks where they land (default `<output-dir>/plots`);
+   `--region lat_min,lat_max,lon_min,lon_max` masks + zooms *those plots* to
+   a sub-box — it does **not** crop the Zarr/data output, and it's a literal
+   lat/lon box, not a named place (`--region` for "the Gulf Coast" isn't a
+   thing; you'd need the actual coordinates). `--keep-raw` skips the
+   scratch-dir cleanup entirely, for feeding into `corrdiff-plots`/
+   `corrdiff-flood-regions` separately afterward. `run_forecast()` is also
+   directly importable, returning the written zarr (and, if requested, plot)
+   paths.
 
 7. **`corrdiff_plots.py`** / **`flood_region_detection.py`** — post-analysis
    (CONUS/region PNG rendering, automatic extreme-precip region detection).
-   Read the *raw* `.npy` files, not the Zarr output — use `corrdiff-forecast
-   --keep-raw` (or `corrdiff-predict` directly) to keep those around, since
-   `run_daily.py`/plain `corrdiff-forecast` delete them after conversion.
+   Read the *raw* `.npy` files, not the Zarr output. `corrdiff-forecast
+   --plot` already covers the common case (ensemble-mean maps, optionally
+   zoomed via `--region`); reach for these directly for anything `--plot`
+   doesn't cover, using `corrdiff-forecast --keep-raw` (or `corrdiff-predict`
+   directly) to keep the raw files around for it, since `run_daily.py`/plain
+   `corrdiff-forecast` delete them after conversion.
 
 ## Running it
 
@@ -183,6 +194,19 @@ depending on what you're doing:
 ```bash
 corrdiff-forecast --username alice --date 2026-08-16 \
   --output-dir ./out --grid-dir ./post_processing
+```
+
+Add `--plot` to also get PNGs out of the same run (default
+`<output-dir>/plots`; use `--plot-dir` to put them elsewhere), and `--region
+lat_min,lat_max,lon_min,lon_max` to zoom those PNGs to a sub-box (e.g. the
+Gulf Coast is `--region 24,31,-98,-80`, not a name `corrdiff-forecast`
+understands) — `--region` only changes the rendered images, not the
+underlying Zarr data:
+
+```bash
+corrdiff-forecast --username alice --date 2026-08-16 \
+  --output-dir ./out --grid-dir ./post_processing \
+  --plot --region 24,31,-98,-80
 ```
 
 :repeat_one: **Unattended / scheduled, "yesterday's" forecast** — `corrdiff-run-daily`,
